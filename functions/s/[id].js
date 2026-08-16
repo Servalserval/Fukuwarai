@@ -24,12 +24,24 @@ export async function onRequestGet({ params, env, request }) {
     zh: (s) => `我在Regloss笑福面中取得了${s}分的好成績！`,
     en: (s) => `I scored ${s} points in Regloss Fukuwarai!`,
   };
-  const mk = BRAGS[row.lang] || BRAGS.ja;
-  const who = row.name ? (row.lang === 'en' ? `${row.name}: ` : `${row.name}：`) : '';
+  const L = ['ja', 'zh', 'en'].includes(row.lang) ? row.lang : 'ja';
+  const mk = BRAGS[L];
+  const who = row.name ? (L === 'en' ? `${row.name}: ` : `${row.name}：`) : '';
   const brag = `${who}${mk(row.score)}`;
-  const desc = 'めかくしで かおをつくる ふくわらいゲーム ─ リグロス福笑い';
+  const DESCS = {
+    ja: 'めかくしで かおをつくる ふくわらいゲーム ─ リグロス福笑い',
+    zh: '蒙著眼拼臉的福笑い遊戲 ─ Regloss 笑福面',
+    en: 'A blindfold face-building game ─ Regloss Fukuwarai',
+  };
+  const BTNS = {
+    ja: 'リグロス福笑いであそぶ →',
+    zh: '來玩 Regloss 笑福面 →',
+    en: 'Play Regloss Fukuwarai →',
+  };
+  const HTML_LANG = { ja: 'ja', zh: 'zh-Hant', en: 'en' };
+  const desc = DESCS[L];
   const html = `<!doctype html>
-<html lang="ja"><head><meta charset="utf-8">
+<html lang="${HTML_LANG[L]}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(brag)} ─ リグロス福笑い</title>
 <meta property="og:type" content="website">
@@ -49,7 +61,7 @@ a{background:#c73e3a;color:#f6f1e3;text-decoration:none;
   padding:13px 40px;border-radius:999px;font-weight:700;letter-spacing:.15em}
 </style></head><body>
 <img src="${esc(img)}" alt="${esc(brag)}">
-<a href="/">リグロス福笑いであそぶ →</a>
+<a href="/">${esc(BTNS[L])}</a>
 </body></html>`;
   return new Response(html, {
     headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' },
