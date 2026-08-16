@@ -63,7 +63,7 @@ const LANGS = {
     saveImg: '画像を保存',
     shareNative: '共有',
     copied: 'コピー済✓',
-    shareText: (face, score, u) => `リグロス福笑いで「${face}」${score}${u}だった！ #リグロス福笑い`,
+    shareText: (face, score, u) => `リグロス福笑いで${score}点のいい成績とった！ #リグロス福笑い`,
   },
   zh: {
     htmlLang: 'zh-Hant',
@@ -115,7 +115,7 @@ const LANGS = {
     saveImg: '儲存圖片',
     shareNative: '分享',
     copied: '已複製文案✓',
-    shareText: (face, score, u) => `我在 Regloss 笑福面「${face}」拿了 ${score}${u}！ #リグロス福笑い`,
+    shareText: (face, score, u) => `我在Regloss笑福面中取得了${score}分的好成績！ #リグロス福笑い`,
   },
   en: {
     htmlLang: 'en',
@@ -167,7 +167,7 @@ const LANGS = {
     saveImg: 'Save image',
     shareNative: 'Share',
     copied: 'Copied!',
-    shareText: (face, score, u) => `I scored ${score}${u} on "${face}" in Regloss Fukuwarai! #リグロス福笑い`,
+    shareText: (face, score, u) => `I scored ${score} points in Regloss Fukuwarai! #リグロス福笑い`,
   },
 };
 
