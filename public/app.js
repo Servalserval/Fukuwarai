@@ -206,6 +206,7 @@ const state = {
   lastScore: null,
   shareUrl: null,
   sharePromise: null,
+  canShareFiles: false,
   board: { type: 'total', key: '', scope: 'all', context: 'menu' },
   markSel: '',
   menuGroup: null,   // null = カテゴリー層；有值 = 該群組的顔列表
@@ -926,6 +927,15 @@ $('btn-share-fb').addEventListener('click', async () => {
     btn.textContent = t('copied');
     setTimeout(() => { btn.textContent = orig; }, 1800);
   } catch {}
+  // 手機：facebook.com/sharer 會被 FB App 攔截跳首頁，改走原生分享（圖＋文可直接進 FB App）
+  if (state.canShareFiles) {
+    try {
+      const blob = await buildResultBlob();
+      const file = new File([blob], 'fukuwarai.png', { type: 'image/png' });
+      await navigator.share({ files: [file], text: `${shareMessage()} ${await ensureShareUrl()}` });
+    } catch {}
+    return;
+  }
   const w = window.open('about:blank', '_blank');
   const url = await ensureShareUrl();
   const u = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
@@ -937,6 +947,7 @@ $('btn-share-fb').addEventListener('click', async () => {
   try {
     const f = new File([new Blob(['x'])], 't.png', { type: 'image/png' });
     if (navigator.canShare && navigator.canShare({ files: [f] })) {
+      state.canShareFiles = true;
       $('btn-share-native').classList.remove('hidden');
     }
   } catch {}
