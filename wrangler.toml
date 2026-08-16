@@ -6,7 +6,7 @@ pages_build_output_dir = "public"
 [[d1_databases]]
 binding = "DB"
 database_name = "fukuwarai"
-database_id = "PASTE-YOUR-D1-ID-HERE"   # ← wrangler d1 create fukuwarai 會給你
+database_id = "284870a7-1309-4a0d-8bf6-947cbb9c3f3e"   # ← wrangler d1 create fukuwarai 會給你
 
 # Preview（dev branch）想用另一顆 DB、不弄髒正式排行榜的話，
 # 解開下面註解，或直接在 Dashboard 的 Preview 環境設 binding。
