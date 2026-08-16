@@ -1,0 +1,16 @@
+{
+  "faces": [
+    {
+      "id": "okame/sample",
+      "label": "おかめ",
+      "artist": "sample",
+      "dir": "face/okame/sample"
+    },
+    {
+      "id": "oni/sample",
+      "label": "おに",
+      "artist": "sample",
+      "dir": "face/oni/sample"
+    }
+  ]
+}

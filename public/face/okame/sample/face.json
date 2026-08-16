@@ -1,0 +1,64 @@
+{
+  "label": "おかめ",
+  "artist": "sample",
+  "base": "base.png",
+  "width": 768,
+  "height": 1024,
+  "tolerance": 0.22,
+  "parts": [
+    {
+      "id": "brow_l",
+      "label": "まゆ・左",
+      "img": "brow_l.png",
+      "w": 120,
+      "h": 48,
+      "x": 289,
+      "y": 470
+    },
+    {
+      "id": "brow_r",
+      "label": "まゆ・右",
+      "img": "brow_r.png",
+      "w": 120,
+      "h": 48,
+      "x": 479,
+      "y": 470
+    },
+    {
+      "id": "eye_l",
+      "label": "め・左",
+      "img": "eye_l.png",
+      "w": 120,
+      "h": 80,
+      "x": 289,
+      "y": 560
+    },
+    {
+      "id": "eye_r",
+      "label": "め・右",
+      "img": "eye_r.png",
+      "w": 120,
+      "h": 80,
+      "x": 479,
+      "y": 560
+    },
+    {
+      "id": "nose",
+      "label": "はな",
+      "img": "nose.png",
+      "w": 90,
+      "h": 90,
+      "x": 384,
+      "y": 655
+    },
+    {
+      "id": "mouth",
+      "label": "くち",
+      "img": "mouth.png",
+      "w": 200,
+      "h": 110,
+      "x": 384,
+      "y": 790
+    }
+  ]
+}

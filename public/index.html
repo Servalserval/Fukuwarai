@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>笑福面 ─ ふくわらい</title>
+<meta name="theme-color" content="#1e3a5f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <h1 class="title"><span class="kana">ふくわらい</span>笑福面</h1>
+</header>
+
+<main id="app">
+
+  <!-- ── 選單 ─────────────────────────── -->
+  <section id="screen-menu" class="screen">
+    <p class="lead">かおを えらんでください</p>
+    <div id="face-grid" aria-live="polite"></div>
+  </section>
+
+  <!-- ── 遊戲 ─────────────────────────── -->
+  <section id="screen-game" class="screen hidden">
+    <div class="game-head">
+      <button id="btn-back" class="ghost-btn" type="button">← もどる</button>
+      <div id="face-title" class="face-title"></div>
+      <button id="btn-board" class="ghost-btn" type="button">ランキング</button>
+    </div>
+
+    <div id="stage">
+      <div id="face-box">
+        <img id="face-img" alt="" draggable="false">
+        <div id="curtain" aria-hidden="true">
+          <span class="curtain-text">めかくし中</span>
+        </div>
+      </div>
+      <div id="tray"></div>
+      <div id="parts-layer"></div>
+    </div>
+
+    <p id="hint" class="hint"></p>
+
+    <div id="panel-play" class="actions">
+      <button id="btn-main" class="main-btn" type="button">はじめる</button>
+    </div>
+
+    <div id="panel-result" class="actions result hidden">
+      <div class="score-line">
+        <span class="score-label">とくてん</span>
+        <span id="score-value" class="score-value">0</span>
+        <span class="score-unit">点</span>
+      </div>
+      <form id="submit-form">
+        <input id="name-input" type="text" maxlength="12" autocomplete="nickname"
+               placeholder="なまえ（12文字まで）" required>
+        <button id="btn-submit" class="main-btn" type="submit">ランキングに登録</button>
+      </form>
+      <p id="submit-msg" class="submit-msg" aria-live="polite"></p>
+      <div class="row">
+        <button id="btn-retry" class="sub-btn" type="button">もういちど</button>
+        <button id="btn-menu" class="sub-btn" type="button">かおをえらぶ</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── 排行榜 ──────────────────────── -->
+<div id="board-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-label="ランキング">
+  <div class="board-card">
+    <div class="board-head">
+      <h2 id="board-title">ランキング</h2>
+      <button id="btn-board-close" class="ghost-btn" type="button">とじる</button>
+    </div>
+    <ol id="board-list"></ol>
+    <p id="board-empty" class="board-empty hidden">まだ記録がありません。いちばんのりのチャンス！</p>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+name = "fukuwarai"
+compatibility_date = "2025-10-01"
+pages_build_output_dir = "public"
+
+# 正式環境（Production，main branch）用的 D1
+[[d1_databases]]
+binding = "DB"
+database_name = "fukuwarai"
+database_id = "PASTE-YOUR-D1-ID-HERE"   # ← wrangler d1 create fukuwarai 會給你
+
+# Preview（dev branch）想用另一顆 DB、不弄髒正式排行榜的話，
+# 解開下面註解，或直接在 Dashboard 的 Preview 環境設 binding。
+# [env.preview]
+# [[env.preview.d1_databases]]
+# binding = "DB"
+# database_name = "fukuwarai-dev"
+# database_id = "PASTE-YOUR-DEV-D1-ID-HERE"

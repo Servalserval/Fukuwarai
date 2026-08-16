@@ -1,0 +1,212 @@
+/* ── tokens ─────────────────────────────── */
+:root{
+  --indigo:#1e3a5f;        /* 藍染の夜空 */
+  --indigo-deep:#152b47;
+  --washi:#f6f1e3;         /* 和紙 */
+  --washi-line:#e2d9c2;
+  --shu:#c73e3a;           /* 朱 */
+  --shu-deep:#9e2b27;
+  --gold:#c9a227;
+  --ink:#2b2622;
+  --ink-soft:#5c554d;
+  --disp:'Yuji Syuku', serif;
+  --body:'Zen Maru Gothic', system-ui, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  min-height:100dvh;
+  font-family:var(--body);
+  color:var(--ink);
+  background:
+    radial-gradient(1200px 600px at 50% -200px, #2c507c 0%, transparent 60%),
+    var(--indigo);
+  display:flex;flex-direction:column;align-items:center;
+  padding:0 12px calc(20px + env(safe-area-inset-bottom));
+  touch-action:manipulation;
+}
+.hidden{display:none !important}
+
+/* ── header ─────────────────────────────── */
+.top{padding:18px 0 6px;text-align:center}
+.title{
+  margin:0;font-family:var(--disp);font-weight:400;
+  font-size:clamp(34px,9vw,46px);letter-spacing:.18em;
+  color:var(--washi);text-shadow:0 2px 0 rgba(0,0,0,.25);
+}
+.title .kana{
+  display:block;font-size:12px;letter-spacing:.55em;
+  color:var(--gold);margin-bottom:2px;font-family:var(--body);
+}
+
+/* ── menu ───────────────────────────────── */
+.screen{width:min(94vw,520px)}
+.lead{
+  text-align:center;color:#cfd9e6;font-size:14px;
+  letter-spacing:.2em;margin:6px 0 14px;
+}
+#face-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.face-card{
+  background:var(--washi);border:none;border-radius:14px;
+  padding:12px 10px 10px;cursor:pointer;
+  box-shadow:0 3px 0 var(--washi-line), 0 10px 24px rgba(0,0,0,.35);
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  transition:transform .12s ease;
+  font-family:var(--body);
+}
+.face-card:active{transform:scale(.97)}
+.face-card img{
+  width:100%;aspect-ratio:3/4;object-fit:contain;
+  border-radius:10px;background:#fffdf7;border:1px solid var(--washi-line);
+}
+.face-card .fc-label{
+  font-family:var(--disp);font-size:22px;color:var(--ink);letter-spacing:.1em;
+}
+.face-card .fc-artist{
+  font-size:11px;color:var(--washi);
+  background:var(--shu);border-radius:999px;padding:2px 10px;
+  letter-spacing:.08em;
+}
+
+/* ── game head ──────────────────────────── */
+.game-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin:2px 0 8px;gap:8px;
+}
+.face-title{
+  font-family:var(--disp);font-size:20px;color:var(--washi);
+  letter-spacing:.12em;text-align:center;flex:1;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ghost-btn{
+  background:rgba(246,241,227,.12);color:#e8eef5;border:1px solid rgba(246,241,227,.35);
+  border-radius:999px;padding:6px 12px;font-family:var(--body);
+  font-size:12px;cursor:pointer;flex-shrink:0;
+}
+.ghost-btn:active{background:rgba(246,241,227,.25)}
+
+/* ── stage ──────────────────────────────── */
+#stage{
+  position:relative;width:100%;
+  background:var(--washi);border-radius:16px;
+  box-shadow:0 4px 0 var(--washi-line), 0 14px 30px rgba(0,0,0,.4);
+  padding:10px;overflow:hidden;
+  user-select:none;-webkit-user-select:none;
+}
+#face-box{
+  position:relative;margin:0 auto;overflow:hidden;
+  border-radius:12px;background:#fffdf7;
+  border:1px dashed var(--washi-line);
+}
+#face-img{
+  display:block;width:100%;height:100%;
+  pointer-events:none;-webkit-user-drag:none;
+}
+
+/* めかくし（noren curtain）── signature */
+#curtain{
+  position:absolute;inset:0;z-index:30;
+  background:
+    repeating-linear-gradient(90deg,
+      var(--shu) 0 11.5%, var(--shu-deep) 11.5% 12.5%),
+    var(--shu);
+  border-bottom:8px solid var(--shu-deep);
+  display:flex;align-items:center;justify-content:center;
+  transform:translateY(-103%);
+  transition:transform .65s cubic-bezier(.22,.9,.3,1.05);
+}
+#stage.blind #curtain{transform:none}
+.curtain-text{
+  writing-mode:vertical-rl;font-family:var(--disp);
+  color:var(--washi);font-size:clamp(26px,7vw,38px);
+  letter-spacing:.35em;opacity:.92;text-shadow:0 2px 0 rgba(0,0,0,.2);
+}
+
+/* tray & parts */
+#tray{
+  position:relative;margin-top:10px;border-radius:12px;
+  background:repeating-linear-gradient(45deg,#efe8d4 0 10px,#f6f1e3 10px 20px);
+  border:1px dashed var(--washi-line);
+}
+#parts-layer{position:absolute;inset:0;pointer-events:none}
+.part{
+  position:absolute;left:0;top:0;z-index:10;
+  pointer-events:auto;cursor:grab;
+  -webkit-user-drag:none;user-select:none;touch-action:none;
+  filter:drop-shadow(0 3px 3px rgba(0,0,0,.25));
+  transition:transform .18s ease;
+}
+.part.dragging{cursor:grabbing;transition:none;filter:drop-shadow(0 8px 8px rgba(0,0,0,.3))}
+.part.locked{pointer-events:none}
+#stage.opened .part{transition:none}
+
+.hint{
+  min-height:1.4em;text-align:center;color:#cfd9e6;
+  font-size:13px;letter-spacing:.08em;margin:10px 0 8px;
+}
+
+/* ── actions / result ───────────────────── */
+.actions{width:100%;display:flex;flex-direction:column;align-items:center;gap:10px}
+.main-btn{
+  font-family:var(--body);font-weight:700;font-size:17px;letter-spacing:.2em;
+  color:var(--washi);background:var(--shu);border:none;border-radius:999px;
+  padding:13px 44px;cursor:pointer;
+  box-shadow:0 4px 0 var(--shu-deep), 0 10px 20px rgba(0,0,0,.35);
+}
+.main-btn:active{transform:translateY(2px);box-shadow:0 2px 0 var(--shu-deep)}
+.main-btn:disabled{opacity:.45;box-shadow:0 4px 0 var(--shu-deep);cursor:default;transform:none}
+
+.result{background:var(--washi);border-radius:16px;padding:16px 14px;
+  box-shadow:0 4px 0 var(--washi-line), 0 14px 30px rgba(0,0,0,.4)}
+.score-line{display:flex;align-items:baseline;gap:8px}
+.score-label{font-size:13px;color:var(--ink-soft);letter-spacing:.2em}
+.score-value{font-family:var(--disp);font-size:46px;color:var(--shu);line-height:1}
+.score-unit{font-family:var(--disp);font-size:20px;color:var(--ink)}
+#submit-form{display:flex;gap:8px;width:100%;justify-content:center;flex-wrap:wrap}
+#name-input{
+  flex:1;min-width:150px;font-family:var(--body);font-size:15px;
+  padding:11px 14px;border-radius:12px;border:2px solid var(--washi-line);
+  background:#fffdf7;color:var(--ink);
+}
+#name-input:focus{outline:2px solid var(--gold);border-color:var(--gold)}
+#submit-form .main-btn{padding:11px 20px;font-size:14px;letter-spacing:.1em}
+.submit-msg{margin:0;font-size:13px;color:var(--ink-soft);min-height:1.3em;text-align:center}
+.submit-msg.rank{color:var(--shu);font-weight:700}
+.row{display:flex;gap:10px}
+.sub-btn{
+  font-family:var(--body);font-size:13px;letter-spacing:.1em;color:var(--ink);
+  background:#fffdf7;border:2px solid var(--washi-line);border-radius:999px;
+  padding:9px 18px;cursor:pointer;
+}
+.sub-btn:active{background:var(--washi-line)}
+
+/* ── leaderboard overlay ────────────────── */
+.overlay{
+  position:fixed;inset:0;z-index:100;
+  background:rgba(12,22,38,.72);backdrop-filter:blur(3px);
+  display:flex;align-items:center;justify-content:center;padding:18px;
+}
+.board-card{
+  width:min(92vw,420px);max-height:80dvh;overflow:auto;
+  background:var(--washi);border-radius:16px;padding:16px;
+  box-shadow:0 20px 50px rgba(0,0,0,.5);
+}
+.board-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.board-head h2{margin:0;font-family:var(--disp);font-weight:400;font-size:22px;letter-spacing:.12em}
+.board-head .ghost-btn{color:var(--ink);border-color:var(--washi-line);background:#fffdf7}
+#board-list{list-style:none;margin:0;padding:0}
+#board-list li{
+  display:flex;align-items:baseline;gap:10px;
+  padding:9px 6px;border-bottom:1px solid var(--washi-line);font-size:15px;
+}
+#board-list .rk{font-family:var(--disp);width:2.2em;color:var(--ink-soft);flex-shrink:0}
+#board-list li:nth-child(1) .rk{color:var(--gold)}
+#board-list li:nth-child(2) .rk,#board-list li:nth-child(3) .rk{color:var(--shu)}
+#board-list .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#board-list .sc{font-family:var(--disp);color:var(--ink)}
+#board-list li.mine{background:#fff3d6;border-radius:8px}
+.board-empty{text-align:center;color:var(--ink-soft);font-size:14px;padding:14px 0}
+
+@media (prefers-reduced-motion: reduce){
+  #curtain,.part,.face-card,.main-btn{transition:none !important}
+}
