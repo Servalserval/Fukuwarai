@@ -25,5 +25,5 @@ git checkout dev
 cd ~/fukuwarai/fukuwarai && unzip -o ~/fukuwarai-sharetext.zip -d /tmp/ && bash /tmp/fukuwarai-sharetext/apply.sh .
 
 git add *
-git commit -m "Fix the problem that all cards are gone"
+git commit -m "Add multilanguage to repost"
 git push
