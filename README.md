@@ -6,71 +6,71 @@
 
 ```
 public/                 ← 靜態網站（Pages 的輸出目錄）
-  index.html
-  style.css
-  app.js
-  faces.json            ← 臉的總登錄表
-  face/<角色>/<繪師>/    ← 一張臉一個資料夾
+  index.html / style.css / app.js
+  faces.json            ← 臉的總登錄表（含キャラ群組顯示名）
+  face/<キャラ>/<絵師>/  ← 一張臉一個資料夾（キャラ = example / hajime / kanade…）
     face.json           ← 這張臉的描述（零件、正解座標）
     base.png            ← 臉底圖
     *.png               ← 各零件（去背 PNG）
-functions/api/score.js  ← 排行榜 API（GET 榜單 / POST 送成績）
-schema.sql              ← D1 資料表
-wrangler.toml
+functions/api/score.js  ← 排行榜 API
+schema.sql              ← D1 資料表（全新安裝用）
+migrations/             ← 既有 DB 的升級 SQL
 tools/gen_sample_faces.py  ← 產示範臉的腳本（換成真圖後可刪）
 ```
 
 ## 快速開始
 
 ```bash
-# 1. 建 D1，把回傳的 database_id 貼進 wrangler.toml
-npx wrangler d1 create fukuwarai
-
-# 2. 建表（--local 給本機開發、--remote 給線上）
+npx wrangler d1 create fukuwarai        # id 貼進 wrangler.toml（或用 Dashboard 建）
+# 建表：D1 Console 貼 schema.sql，或：
 npx wrangler d1 execute fukuwarai --file=schema.sql --local
 npx wrangler d1 execute fukuwarai --file=schema.sql --remote
-
-# 3. 本機開發（含 Functions + 本機模擬 D1）
-npx wrangler pages dev public
-#    → http://localhost:8788
-
-# 4. 部署
-npx wrangler pages deploy public
+npx wrangler pages dev public           # 本機 http://localhost:8788
+npx wrangler pages deploy public        # 或 git push 由 Pages 自動部署
 ```
 
-> 注意：帶 `functions/` 的專案要用 `wrangler pages deploy` 或 Git 整合部署，
-> Dashboard 直接拖資料夾上傳不會編譯 Functions。
+> 帶 `functions/` 的專案要用 `wrangler pages deploy` 或 Git 整合部署，
+> Dashboard 拖資料夾上傳不會編譯 Functions。
 
-## dev / 正式 兩條線（一個 repo、一個 Pages 專案就夠）
+## 玩家プロフィール（なまえ＋推しマーク）
 
-Pages 內建 Preview Deployments：
+- 選單畫面左上的按鈕可登錄なまえ（12 字內）＋推しマーク，存在瀏覽器 `localStorage`
+  （key: `fukuwarai_profile`），之後送分自動帶這組身分，不再每次輸入。
+- 推しマーク清單在 `public/app.js` 最上面的 `MARKS` 陣列，想換成各キャラ的
+  正式マーク直接改那個陣列即可（emoji 最多 4 個 code point，伺服器端會再裁一次）。
+- 排行榜以「なまえ＋マーク」當同一位玩家；同名不同マーク視為不同人。
 
-- **Production branch**（預設 `main`）→ 部署到正式網址
-- **其他任何 branch**（例如 `dev`）→ 每次 push 自動部署到
-  `https://dev.<專案名>.pages.dev`（branch 別名固定）+ 每個 commit 各有一個網址
+## 排行榜
 
-流程：
+三種榜 × 兩種期間，全部走 `GET /api/score`：
 
-```bash
-git checkout dev && git push        # → dev.<專案名>.pages.dev 自動更新
-git checkout main && git merge dev && git push   # → 正式站更新
-```
+| type | key | 意義 |
+|---|---|---|
+| `face` | `example/okame` | 單一張臉。同玩家只取**最高分**那筆，回傳含落點 `parts` 給預覽用 |
+| `char` | `example` | キャラ合計：該資料夾下每張臉先取玩家最高分，再**加總** |
+| `total` | —— | 總合計：所有臉的最高分加總 |
 
-用 wrangler 直接上傳也一樣：`--branch=dev` 就是 preview、`--branch=main` 就是正式。
+`scope=all`（全期間，預設）或 `scope=today`（當天）。「當天」的日界線時區在
+`functions/api/score.js` 的 `DAY_TZ` 常數，預設 `'+9 hours'`（日本時間），
+要改台灣時間就換 `'+8 hours'`。
 
-**讓 dev 用另一顆 DB**（測試分數不弄髒正式排行榜）：
-Dashboard → 專案 → Settings → Bindings，Production 綁 `fukuwarai`、
-Preview 綁 `fukuwarai-dev`（先 `npx wrangler d1 create fukuwarai-dev` 並跑 schema）。
-或解開 `wrangler.toml` 裡 `[env.preview]` 的註解。
+單張臉滿分 10000，所以合計榜上限 = 10000 × 該範圍的臉數。
+
+臉的榜每列有迷你笑福面預覽（用該筆成績存的落點重現）；合計榜是跨臉加總，
+沒有單一落點可畫，所以只列分數＋參與臉數。
+
+`POST /api/score`：`{name, mark, faceId, parts}`。分數一律由伺服器讀
+`face.json` 重算（防灌分），並回傳全期間去重後的名次。
 
 ## 加一張新臉
 
-1. 開資料夾 `public/face/<角色>/<繪師>/`，放 `base.png` 和各零件的去背 PNG
+1. 開資料夾 `public/face/<キャラ>/<絵師>/`（例：`face/hajime/azuma/`），
+   放 `base.png` 和各零件的去背 PNG
 2. 寫同資料夾的 `face.json`：
 
 ```json
 {
-  "label": "アニキ",
+  "label": "はじめ",
   "artist": "azuma",
   "base": "base.png",
   "width": 768,          // base.png 的原始像素尺寸
@@ -84,27 +84,38 @@ Preview 綁 `fukuwarai-dev`（先 `npx wrangler d1 create fukuwarai-dev` 並跑 
 }
 ```
 
-3. 在 `public/faces.json` 登錄一筆：
+3. 在 `public/faces.json` 登錄一筆，キャラ第一次出現時順便在 `groups`
+   加顯示名：
 
 ```json
-{ "id": "aniki/azuma", "label": "アニキ", "artist": "azuma", "dir": "face/aniki/azuma" }
+{
+  "groups": { "example": "サンプル", "hajime": "はじめ" },
+  "faces": [
+    { "id": "hajime/azuma", "label": "はじめ", "artist": "azuma", "dir": "face/hajime/azuma" }
+  ]
+}
 ```
 
-完工。座標用任何繪圖軟體打開 base.png 量中心點即可；`id` 只允許
-`英數/_-` 兩段式（`角色/繪師`），API 端有用 regex 擋 path traversal。
+完工——キャラ合計榜會自動出現「はじめ 合計」分頁。`id` 限定
+`英數/_-` 的「キャラ/絵師」兩段式，API 端有 regex 擋 path traversal。
+
+## 既有 DB 升級（v1 → v2）
+
+到 D1 Console（正式那顆；有 dev 顆也要）貼 `migrations/0002_profile_boards.sql`
+執行一次：加 `mark`、`parts` 欄位＋時間索引。舊資料照常保留，只是沒有
+マーク和預覽。
 
 ## 防灌分的機制與極限
 
-- 前端**只送每個零件的落點座標**，`/api/score` 會自己抓該臉的 `face.json`
-  重算距離與分數才寫入 D1 —— 改 client 端 JS 的分數變數沒有用。
-- 伺服器端另外驗：faceId 白名單（必須在 faces.json 裡）、零件 id 齊全不重複、
-  座標在合理範圍、名字去控制字元並截 12 字。
-- **極限**：有心人仍可寫程式直接 POST「完美座標」拿滿分。要擋到這層，
-  可再加 [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/)
-  （免費）驗證每次送分，或對同 IP 做頻率限制（KV 記次數）。休閒用途通常不必。
+- 前端只送落點座標，`/api/score` 自己抓 `face.json` 重算距離與分數才寫入
+- faceId 白名單（必須在 faces.json）、零件齊全不重複、座標範圍、名字截 12 字、
+  マーク裁 4 code point
+- 極限：有心人仍可寫程式 POST「完美座標」。要擋這層可加
+  [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/)（免費）
+  或對同 IP 做頻率限制（KV 記次數）。休閒用途通常不必。
 
 ## 分數公式
 
 每個零件：`d = 落點與正解的距離 / 底圖對角線`，得分 `max(0, 1 - d/tolerance)`；
-全部平均 × 10000 取整，滿分 10000。公式在 `public/app.js` 與
-`functions/api/score.js` 各有一份（顯示用 / 計分用），改的時候兩邊要同步。
+全部平均 × 10000 取整。公式在 `public/app.js` 與 `functions/api/score.js`
+各有一份（顯示用 / 計分用），改的時候兩邊要同步。

@@ -1,8 +1,15 @@
-/* 笑福面 ─ front-end
+/* 笑福面 ─ front-end v2
  * 座標系：模型一律用「底圖像素座標」(face.json 的 width/height)，
  * 畫面上再乘 scale 換算，resize 時重排即可。
+ * v2：本機プロフィール（なまえ＋推しマーク）、排行榜預覽、
+ *     當天榜／キャラ合計榜／総合計榜。
  */
 'use strict';
+
+/* 推しマーク清單：想換就改這裡（會顯示在登録画面跟排行榜） */
+const MARKS = ['⭐','🌸','🔥','🌙','🍀','🎀','🎧','⚙️','🎹','🐚','🖌️','👑','🍙','💎','🐾','🎵'];
+
+const PROFILE_KEY = 'fukuwarai_profile';
 
 const $ = (id) => document.getElementById(id);
 const screens = { menu: $('screen-menu'), game: $('screen-game') };
@@ -13,10 +20,76 @@ const state = {
   def: null,         // face.json
   phase: 'menu',     // menu | ready | blind | opened | done
   scale: 1,
-  faceRect: null,    // face-box 相對 #stage 的位置
-  parts: new Map(),  // id -> {def, el, x, y(底圖座標，placed 時有效), placed, home:{sx,sy 螢幕座標}}
+  faceRect: null,
+  parts: new Map(),  // id -> {def, el, x, y(底圖座標), placed, home:{sx,sy}}
   lastScore: null,
+  board: { type: 'total', key: '', scope: 'all', context: 'menu' },
+  markSel: '',       // 登録画面暫存的マーク
 };
+
+/* ── プロフィール（localStorage）─────────────────────── */
+function loadProfile() {
+  try {
+    const p = JSON.parse(localStorage.getItem(PROFILE_KEY));
+    if (p && typeof p.name === 'string' && p.name.trim()) {
+      return { name: p.name.trim(), mark: typeof p.mark === 'string' ? p.mark : '' };
+    }
+  } catch {}
+  return null;
+}
+function saveProfile(name, mark) {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify({ name, mark }));
+  renderProfileUI();
+}
+function playerText(p) { return `${p.mark ? p.mark + ' ' : ''}${p.name}`; }
+
+function renderProfileUI() {
+  const p = loadProfile();
+  $('profile-chip').textContent = p ? playerText(p) : 'なまえを登録する';
+  $('player-as').textContent = p ? `${playerText(p)} として登録` : 'なまえが未登録です';
+}
+
+function openProfile() {
+  const p = loadProfile();
+  $('profile-name').value = p ? p.name : '';
+  state.markSel = p ? p.mark : '';
+  const grid = $('mark-grid');
+  grid.innerHTML = '';
+  const noneBtn = document.createElement('button');
+  noneBtn.type = 'button';
+  noneBtn.className = 'mark-btn none' + (state.markSel === '' ? ' sel' : '');
+  noneBtn.textContent = 'なし';
+  noneBtn.addEventListener('click', () => { state.markSel = ''; syncMarkSel(); });
+  grid.appendChild(noneBtn);
+  for (const m of MARKS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'mark-btn' + (state.markSel === m ? ' sel' : '');
+    b.textContent = m;
+    b.dataset.mark = m;
+    b.addEventListener('click', () => { state.markSel = m; syncMarkSel(); });
+    grid.appendChild(b);
+  }
+  $('profile-overlay').classList.remove('hidden');
+  if (!p) $('profile-name').focus();
+}
+function syncMarkSel() {
+  for (const b of $('mark-grid').children) {
+    b.classList.toggle('sel', (b.dataset.mark || '') === state.markSel);
+  }
+}
+$('profile-chip').addEventListener('click', openProfile);
+$('btn-edit-profile').addEventListener('click', openProfile);
+$('btn-profile-close').addEventListener('click', () => $('profile-overlay').classList.add('hidden'));
+$('profile-overlay').addEventListener('click', (e) => {
+  if (e.target === $('profile-overlay')) $('profile-overlay').classList.add('hidden');
+});
+$('btn-profile-save').addEventListener('click', () => {
+  const name = $('profile-name').value.trim().slice(0, 12);
+  if (!name) { $('profile-name').focus(); return; }
+  saveProfile(name, state.markSel);
+  $('profile-overlay').classList.add('hidden');
+});
 
 /* ── 分數公式（要跟 functions/api/score.js 保持一致）────── */
 function computeScore(def, placements) {
@@ -52,6 +125,17 @@ async function loadMenu() {
     card.addEventListener('click', () => startFace(f));
     grid.appendChild(card);
   }
+  renderProfileUI();
+}
+
+function groupsOf() {
+  const reg = state.registry || { faces: [] };
+  const g = {};
+  for (const f of reg.faces) {
+    const key = f.id.split('/')[0];
+    g[key] = (reg.groups && reg.groups[key]) || key;
+  }
+  return g; // {example: 'サンプル', hajime: 'はじめ', ...}
 }
 
 function showScreen(name) {
@@ -97,7 +181,6 @@ function resetRound() {
   $('submit-msg').textContent = '';
   $('submit-msg').classList.remove('rank');
   $('btn-submit').disabled = false;
-  $('name-input').disabled = false;
   const btn = $('btn-main');
   btn.textContent = 'はじめる';
   btn.disabled = false;
@@ -105,12 +188,12 @@ function resetRound() {
     rec.placed = false;
     rec.el.classList.remove('locked', 'dragging');
   }
-  layout(true);
+  layout();
   setHint('「はじめる」を押すと めかくしが おります');
 }
 
 /* ── 版面計算 ─────────────────────────────────────────── */
-function layout(rehome) {
+function layout() {
   const stage = $('stage');
   const stageW = stage.clientWidth - 20;              // padding 10*2
   const maxH = Math.min(window.innerHeight * 0.52, 560);
@@ -123,22 +206,18 @@ function layout(rehome) {
   fb.style.width = fw + 'px';
   fb.style.height = fh + 'px';
 
-  // tray 高度：兩排零件的估計高
+  // tray 高度：估兩排零件
   const maxPartH = Math.max(...state.def.parts.map(p => p.h)) * scale;
   const rows = Math.ceil(state.def.parts.length / 3);
   const tray = $('tray');
   tray.style.height = Math.round(rows * (maxPartH + 14) + 10) + 'px';
 
-  // face-box / tray 相對 stage 的框
   const sRect = stage.getBoundingClientRect();
   const fRect = fb.getBoundingClientRect();
-  state.faceRect = {
-    x: fRect.left - sRect.left, y: fRect.top - sRect.top, w: fw, h: fh,
-  };
+  state.faceRect = { x: fRect.left - sRect.left, y: fRect.top - sRect.top, w: fw, h: fh };
   const tRect = tray.getBoundingClientRect();
   const trayBox = { x: tRect.left - sRect.left, y: tRect.top - sRect.top, w: tRect.width, h: tRect.height };
 
-  // home 位置（tray 內排格子）
   const ids = state.def.parts.map(p => p.id);
   const cols = Math.min(3, ids.length);
   ids.forEach((id, i) => {
@@ -149,7 +228,6 @@ function layout(rehome) {
     rec.el.style.width = Math.round(rec.def.w * scale) + 'px';
   });
 
-  // 依模型重畫
   for (const rec of state.parts.values()) {
     if (rec.placed) {
       moveTo(rec, state.faceRect.x + rec.x * scale, state.faceRect.y + rec.y * scale);
@@ -183,8 +261,7 @@ function attachDrag(rec) {
 
   el.addEventListener('pointermove', (e) => {
     if (!dragging) return;
-    const stage = $('stage');
-    const s = stage.getBoundingClientRect();
+    const s = $('stage').getBoundingClientRect();
     let sx = e.clientX - s.left - offX;
     let sy = e.clientY - s.top - offY;
     sx = Math.max(8, Math.min(s.width - 8, sx));
@@ -192,7 +269,7 @@ function attachDrag(rec) {
     moveTo(rec, sx, sy);
   });
 
-  const finish = (e) => {
+  const finish = () => {
     if (!dragging) return;
     dragging = false;
     el.classList.remove('dragging');
@@ -249,20 +326,21 @@ function openCurtain() {
   $('score-value').textContent = state.lastScore;
   $('panel-play').classList.add('hidden');
   $('panel-result').classList.remove('hidden');
-  setHint('できあがり！なまえを入れて ランキングに登録しよう');
+  renderProfileUI();
+  setHint('できあがり！ランキングに登録しよう');
 }
 
-$('submit-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
+$('btn-submit').addEventListener('click', async () => {
   if (state.phase !== 'opened') return;
-  const name = $('name-input').value.trim();
-  if (!name) return;
+  const profile = loadProfile();
+  if (!profile) { openProfile(); return; }
   const btn = $('btn-submit');
   btn.disabled = true;
   $('submit-msg').textContent = '送信中…';
   try {
     const body = {
-      name,
+      name: profile.name,
+      mark: profile.mark || null,
       faceId: state.faceEntry.id,
       parts: [...state.parts.values()].map(r => ({ id: r.def.id, x: r.x, y: r.y })),
     };
@@ -274,13 +352,12 @@ $('submit-form').addEventListener('submit', async (e) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'error');
     state.phase = 'done';
-    $('name-input').disabled = true;
     $('score-value').textContent = data.score;
     const msg = $('submit-msg');
-    msg.textContent = `登録しました！ 第 ${data.rank} 位`;
+    msg.textContent = `登録しました！ 第 ${data.rank} 位（ベスト ${data.best} 点）`;
     msg.classList.add('rank');
-    showBoard(data.top, name, data.score);
-  } catch (err) {
+    openBoard('game', { top: data.top });
+  } catch {
     btn.disabled = false;
     $('submit-msg').textContent = '登録に失敗しました。もう一度どうぞ。';
   }
@@ -291,39 +368,131 @@ $('btn-menu').addEventListener('click', () => { state.phase = 'menu'; showScreen
 $('btn-back').addEventListener('click', () => { state.phase = 'menu'; showScreen('menu'); });
 
 /* ── 排行榜 ───────────────────────────────────────────── */
-$('btn-board').addEventListener('click', async () => {
-  try {
-    const res = await fetch(`/api/score?face=${encodeURIComponent(state.faceEntry.id)}`);
-    const data = await res.json();
-    showBoard(data.top);
-  } catch { showBoard([]); }
-});
+$('btn-board').addEventListener('click', () => openBoard('game'));
+$('btn-menu-board').addEventListener('click', () => openBoard('menu'));
 $('btn-board-close').addEventListener('click', () => $('board-overlay').classList.add('hidden'));
 $('board-overlay').addEventListener('click', (e) => {
   if (e.target === $('board-overlay')) $('board-overlay').classList.add('hidden');
 });
 
-function showBoard(top, mineName, mineScore) {
-  $('board-title').textContent = `ランキング ─ ${state.def ? state.def.label : ''}`;
+/* context: 'game' = 有「この顔」分頁；'menu' = 只有合計類 */
+function openBoard(context, preset) {
+  const b = state.board;
+  b.context = context;
+  b.scope = 'all';
+  if (context === 'game') {
+    b.type = 'face';
+    b.key = state.faceEntry.id;
+  } else {
+    b.type = 'total';
+    b.key = '';
+  }
+  renderBoardTabs();
+  $('board-overlay').classList.remove('hidden');
+  if (preset && preset.top) renderBoardList(preset.top);
+  else fetchBoard();
+}
+
+function renderBoardTabs() {
+  const b = state.board;
+  const typeTabs = [];
+  if (b.context === 'game') {
+    const g = state.faceEntry.id.split('/')[0];
+    typeTabs.push({ t: 'face', k: state.faceEntry.id, label: 'この顔' });
+    typeTabs.push({ t: 'char', k: g, label: `${groupsOf()[g] || g} 合計` });
+    typeTabs.push({ t: 'total', k: '', label: '総合計' });
+  } else {
+    const gs = groupsOf();
+    for (const key of Object.keys(gs)) typeTabs.push({ t: 'char', k: key, label: `${gs[key]} 合計` });
+    typeTabs.push({ t: 'total', k: '', label: '総合計' });
+  }
+  const tt = $('board-type-tabs');
+  tt.innerHTML = '';
+  for (const tab of typeTabs) {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'tab' + (b.type === tab.t && b.key === tab.k ? ' sel' : '');
+    el.textContent = tab.label;
+    el.addEventListener('click', () => { b.type = tab.t; b.key = tab.k; renderBoardTabs(); fetchBoard(); });
+    tt.appendChild(el);
+  }
+  const st = $('board-scope-tabs');
+  st.innerHTML = '';
+  for (const [scope, label] of [['all', '全期間'], ['today', '今日']]) {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'tab' + (b.scope === scope ? ' sel' : '');
+    el.textContent = label;
+    el.addEventListener('click', () => { b.scope = scope; renderBoardTabs(); fetchBoard(); });
+    st.appendChild(el);
+  }
+  const b2 = state.board;
+  $('board-title').textContent =
+    b2.type === 'face' ? `ランキング ─ ${state.def ? state.def.label : ''}` : 'ランキング';
+}
+
+async function fetchBoard() {
+  const b = state.board;
+  $('board-list').innerHTML = '';
+  $('board-empty').classList.add('hidden');
+  $('board-loading').classList.remove('hidden');
+  try {
+    const q = new URLSearchParams({ type: b.type, scope: b.scope });
+    if (b.key) q.set('key', b.key);
+    const res = await fetch(`/api/score?${q}`);
+    const data = await res.json();
+    renderBoardList(data.top || []);
+  } catch {
+    renderBoardList([]);
+  }
+}
+
+function renderBoardList(top) {
+  $('board-loading').classList.add('hidden');
+  const b = state.board;
+  const profile = loadProfile();
   const list = $('board-list');
   list.innerHTML = '';
   let marked = false;
-  (top || []).forEach((row, i) => {
+  top.forEach((row, i) => {
     const li = document.createElement('li');
-    if (!marked && mineName != null && row.name === mineName && row.score === mineScore) {
+    if (!marked && profile && row.name === profile.name && (row.mark || '') === (profile.mark || '')) {
       li.classList.add('mine'); marked = true;
     }
+    const mk = row.mark ? `<span class="mk">${esc(row.mark)}</span>` : '';
+    const fc = (b.type !== 'face' && row.faces > 1) ? `<span class="fc">${row.faces}面</span>` : '';
     li.innerHTML = `<span class="rk">${i + 1}</span>` +
-                   `<span class="nm">${esc(row.name)}</span>` +
-                   `<span class="sc">${esc(row.score)}点</span>`;
+      (b.type === 'face' ? miniHTML(row.parts) : '') +
+      `${mk}<span class="nm">${esc(row.name)}</span>${fc}` +
+      `<span class="sc">${esc(row.score)}点</span>`;
     list.appendChild(li);
   });
-  $('board-empty').classList.toggle('hidden', (top || []).length > 0);
-  $('board-overlay').classList.remove('hidden');
+  $('board-empty').classList.toggle('hidden', top.length > 0);
+}
+
+/* 排行榜的迷你笑福面預覽（用目前這張臉的素材＋該筆成績存的落點） */
+function miniHTML(partsJson) {
+  const def = state.def, dir = state.faceEntry && state.faceEntry.dir;
+  if (!def || !dir || !partsJson) return '<span class="mini"></span>';
+  let arr;
+  try { arr = JSON.parse(partsJson); } catch { return '<span class="mini"></span>'; }
+  if (!Array.isArray(arr)) return '<span class="mini"></span>';
+  const W = 46, s = W / def.width;
+  const byId = new Map(def.parts.map(p => [p.id, p]));
+  let html = `<span class="mini"><img class="mini-base" src="${esc(dir)}/${esc(def.base)}" alt="">`;
+  for (const p of arr) {
+    const dp = byId.get(p.id);
+    if (!dp) continue;
+    const w = dp.w * s, h = dp.h * s;
+    const left = (Number(p.x) * s - w / 2).toFixed(1);
+    const top = (Number(p.y) * s - h / 2).toFixed(1);
+    html += `<img src="${esc(dir)}/${esc(dp.img)}" style="width:${w.toFixed(1)}px;left:${left}px;top:${top}px" alt="">`;
+  }
+  return html + '</span>';
 }
 
 /* ── init ─────────────────────────────────────────────── */
 window.addEventListener('resize', () => {
-  if (state.phase !== 'menu' && state.def) layout(false);
+  if (state.phase !== 'menu' && state.def) layout();
 });
 loadMenu();

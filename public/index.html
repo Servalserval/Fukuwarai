@@ -20,6 +20,10 @@
 
   <!-- ── 選單 ─────────────────────────── -->
   <section id="screen-menu" class="screen">
+    <div class="menu-bar">
+      <button id="profile-chip" class="chip" type="button">なまえを登録する</button>
+      <button id="btn-menu-board" class="ghost-btn" type="button">ランキング</button>
+    </div>
     <p class="lead">かおを えらんでください</p>
     <div id="face-grid" aria-live="polite"></div>
   </section>
@@ -55,11 +59,11 @@
         <span id="score-value" class="score-value">0</span>
         <span class="score-unit">点</span>
       </div>
-      <form id="submit-form">
-        <input id="name-input" type="text" maxlength="12" autocomplete="nickname"
-               placeholder="なまえ（12文字まで）" required>
-        <button id="btn-submit" class="main-btn" type="submit">ランキングに登録</button>
-      </form>
+      <div class="player-line">
+        <span id="player-as">なまえが未登録です</span>
+        <button id="btn-edit-profile" class="link-btn" type="button">へんこう</button>
+      </div>
+      <button id="btn-submit" class="main-btn" type="button">ランキングに登録</button>
       <p id="submit-msg" class="submit-msg" aria-live="polite"></p>
       <div class="row">
         <button id="btn-retry" class="sub-btn" type="button">もういちど</button>
@@ -70,6 +74,22 @@
 
 </main>
 
+<!-- ── なまえ＋推しマーク登録 ─────────── -->
+<div id="profile-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-label="なまえの登録">
+  <div class="board-card">
+    <div class="board-head">
+      <h2>なまえの登録</h2>
+      <button id="btn-profile-close" class="ghost-btn" type="button">とじる</button>
+    </div>
+    <p class="field-label">なまえ（12文字まで）</p>
+    <input id="profile-name" type="text" maxlength="12" autocomplete="nickname" placeholder="なまえ">
+    <p class="field-label">推しマーク</p>
+    <div id="mark-grid" class="mark-grid"></div>
+    <p class="profile-note">この端末に保存されます。次からは自動でこのなまえで登録されます。</p>
+    <button id="btn-profile-save" class="main-btn" type="button">保存する</button>
+  </div>
+</div>
+
 <!-- ── 排行榜 ──────────────────────── -->
 <div id="board-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-label="ランキング">
   <div class="board-card">
@@ -77,7 +97,10 @@
       <h2 id="board-title">ランキング</h2>
       <button id="btn-board-close" class="ghost-btn" type="button">とじる</button>
     </div>
+    <div id="board-type-tabs" class="tabs"></div>
+    <div id="board-scope-tabs" class="tabs scope"></div>
     <ol id="board-list"></ol>
+    <p id="board-loading" class="board-empty hidden">よみこみ中…</p>
     <p id="board-empty" class="board-empty hidden">まだ記録がありません。いちばんのりのチャンス！</p>
   </div>
 </div>

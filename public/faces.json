@@ -1,16 +1,19 @@
 {
+  "groups": {
+    "example": "サンプル"
+  },
   "faces": [
     {
-      "id": "okame/sample",
+      "id": "example/okame",
       "label": "おかめ",
       "artist": "sample",
-      "dir": "face/okame/sample"
+      "dir": "face/example/okame"
     },
     {
-      "id": "oni/sample",
+      "id": "example/oni",
       "label": "おに",
       "artist": "sample",
-      "dir": "face/oni/sample"
+      "dir": "face/example/oni"
     }
   ]
 }

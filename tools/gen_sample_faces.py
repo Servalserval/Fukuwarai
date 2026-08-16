@@ -135,7 +135,7 @@ def oni_mouth():
 
 # ---------------------------------------------------------------- 定義
 FACES = {
-    "okame/sample": {
+    "example/okame": {
         "label": "おかめ", "artist": "sample",
         "base": okame_base,
         "parts": [
@@ -147,7 +147,7 @@ FACES = {
             ("mouth",  "くち",    okame_mouth,(384, 790)),
         ],
     },
-    "oni/sample": {
+    "example/oni": {
         "label": "おに", "artist": "sample",
         "base": oni_base,
         "parts": [
@@ -162,7 +162,7 @@ FACES = {
 }
 
 def main():
-    registry = {"faces": []}
+    registry = {"groups": {"example": "サンプル"}, "faces": []}
     for face_id, spec in FACES.items():
         outdir = os.path.join(ROOT, face_id)
         os.makedirs(outdir, exist_ok=True)
