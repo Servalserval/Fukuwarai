@@ -115,6 +115,13 @@ npx wrangler pages deploy public        # 或 git push 由 Pages 自動部署
 執行一次：加 `mark`、`parts` 欄位＋時間索引。舊資料照常保留，只是沒有
 マーク和預覽。
 
+## 分享卡（X/FB 帶圖）
+
+「オープン」後結果圖會背景上傳到 `/api/share`（存進 D1 的 `shares` 表），
+X/FB 按鈕分享的是 `/s/<id>` 這個網址——頁面帶 `og:image`，平台會渲染成
+大圖卡片。60 天以上的舊分享卡會在新增時自動清除。第一次啟用要跑
+`migrations/0003_shares.sql`。
+
 ## 防灌分的機制與極限
 
 - 前端只送落點座標，`/api/score` 自己抓 `face.json` 重算距離與分數才寫入

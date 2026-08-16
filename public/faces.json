@@ -45,8 +45,18 @@
         "zh": "Hajime",
         "en": "Hajime"
       },
-      "artist": "メル",
+      "artist": "メル（やたてぃ）",
       "dir": "face/hajime/meru"
+    },
+    {
+      "id": "hajime/meru-mujukachii",
+      "label": {
+        "ja": "はじめ",
+        "zh": "Hajime",
+        "en": "Hajime"
+      },
+      "artist": "メル（むじゅかちい）",
+      "dir": "face/hajime/meru-mujukachii"
     }
   ]
 }

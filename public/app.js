@@ -201,6 +201,8 @@ const state = {
   faceRect: null,
   parts: new Map(),  // id -> {def, el, x, y(底圖座標), placed, home:{sx,sy}}
   lastScore: null,
+  shareUrl: null,
+  sharePromise: null,
   board: { type: 'total', key: '', scope: 'all', context: 'menu' },
   markSel: '',
   menuGroup: null,   // null = カテゴリー層；有值 = 該群組的顔列表
@@ -384,12 +386,13 @@ function previewHTML(f) {
   }
   const fit = (def.width / def.height >= 0.75) ? 'width:100%' : 'height:100%';
   let html = `<span class="pv-frame"><span class="preview" style="aspect-ratio:${def.width}/${def.height};${fit}">` +
-    `<img class="pv-base" src="${esc(f.dir)}/${esc(def.base)}" alt="">`;
+    `<img class="pv-base" src="${esc(f.dir)}/${esc(def.base)}" style="z-index:0" alt="">`;
   for (const p of zOrdered(def.parts)) {
     const l = ((p.x - p.w / 2) / def.width * 100).toFixed(2);
     const tp = ((p.y - p.h / 2) / def.height * 100).toFixed(2);
     const w = (p.w / def.width * 100).toFixed(2);
-    html += `<img src="${esc(f.dir)}/${esc(p.img)}" style="left:${l}%;top:${tp}%;width:${w}%" alt="">`;
+    const zi = (p.z || 0) < 0 ? -1 : 1;
+    html += `<img src="${esc(f.dir)}/${esc(p.img)}" style="left:${l}%;top:${tp}%;width:${w}%;z-index:${zi}" alt="">`;
   }
   return html + '</span></span>';
 }
@@ -488,7 +491,7 @@ function buildParts() {
     el.src = `${state.faceEntry.dir}/${dp.img}`;
     el.alt = dp.label || dp.id;
     el.draggable = false;
-    el.style.zIndex = String(10 + Math.max(0, Math.min(15, dp.z || 0)));
+    el.style.zIndex = String(12 + Math.max(-9, Math.min(15, dp.z || 0)));
     layer.appendChild(el);
     const rec = { def: dp, el, x: 0, y: 0, placed: false, home: { sx: 0, sy: 0 } };
     state.parts.set(dp.id, rec);
@@ -499,6 +502,8 @@ function buildParts() {
 function resetRound() {
   state.phase = 'ready';
   state.lastScore = null;
+  state.shareUrl = null;
+  state.sharePromise = null;
   $('stage').classList.remove('blind', 'opened');
   $('panel-play').classList.remove('hidden');
   $('panel-result').classList.add('hidden');
@@ -510,6 +515,7 @@ function resetRound() {
   btn.disabled = false;
   for (const rec of state.parts.values()) {
     rec.placed = false;
+    rec.drag = false;
     rec.el.classList.remove('locked', 'dragging');
   }
   layout();
@@ -530,10 +536,19 @@ function layout() {
   fb.style.width = fw + 'px';
   fb.style.height = fh + 'px';
 
-  const maxPartH = Math.max(...state.def.parts.map(p => p.h)) * scale;
-  const rows = Math.ceil(state.def.parts.length / 3);
+  const TRAY_MAX = 110; // 零件在 tray 的最大邊長(px)，超過自動縮小
+  const cols = Math.min(3, state.def.parts.length);
+  for (const rec of state.parts.values()) {
+    rec.trayScale = Math.min(1, TRAY_MAX / (Math.max(rec.def.w, rec.def.h) * scale));
+  }
+  const rowHs = [];
+  state.def.parts.forEach((p, i) => {
+    const rec = state.parts.get(p.id);
+    const r = Math.floor(i / cols);
+    rowHs[r] = Math.max(rowHs[r] || 40, p.h * scale * rec.trayScale);
+  });
   const tray = $('tray');
-  tray.style.height = Math.round(rows * (maxPartH + 14) + 10) + 'px';
+  tray.style.height = Math.round(rowHs.reduce((a, b) => a + b + 14, 10)) + 'px';
 
   const sRect = stage.getBoundingClientRect();
   const fRect = fb.getBoundingClientRect();
@@ -541,17 +556,17 @@ function layout() {
   const tRect = tray.getBoundingClientRect();
   const trayBox = { x: tRect.left - sRect.left, y: tRect.top - sRect.top, w: tRect.width, h: tRect.height };
 
-  const ids = state.def.parts.map(p => p.id);
-  const cols = Math.min(3, ids.length);
-  ids.forEach((id, i) => {
-    const rec = state.parts.get(id);
+  let accY = trayBox.y + 10;
+  state.def.parts.forEach((p, i) => {
+    const rec = state.parts.get(p.id);
     const c = i % cols, r = Math.floor(i / cols);
+    if (c === 0 && r > 0) accY += rowHs[r - 1] + 14;
     rec.home.sx = trayBox.x + trayBox.w * (c + 0.5) / cols;
-    rec.home.sy = trayBox.y + (maxPartH / 2 + 10) + r * (maxPartH + 14);
-    rec.el.style.width = Math.round(rec.def.w * scale) + 'px';
+    rec.home.sy = accY + rowHs[r] / 2;
   });
 
   for (const rec of state.parts.values()) {
+    applyPartSize(rec);
     if (rec.placed) {
       moveTo(rec, state.faceRect.x + rec.x * scale, state.faceRect.y + rec.y * scale);
     } else {
@@ -560,8 +575,14 @@ function layout() {
   }
 }
 
+function applyPartSize(rec) {
+  rec.vs = (rec.placed || rec.drag) ? 1 : (rec.trayScale || 1);
+  rec.el.style.width = Math.round(rec.def.w * state.scale * rec.vs) + 'px';
+}
+
 function moveTo(rec, sx, sy) {
-  const w = rec.def.w * state.scale, h = rec.def.h * state.scale;
+  const vs = rec.vs || 1;
+  const w = rec.def.w * state.scale * vs, h = rec.def.h * state.scale * vs;
   rec.el.style.transform = `translate3d(${sx - w / 2}px, ${sy - h / 2}px, 0)`;
   rec.sx = sx; rec.sy = sy;
 }
@@ -574,6 +595,9 @@ function attachDrag(rec) {
   el.addEventListener('pointerdown', (e) => {
     if (state.phase !== 'blind' || rec.placed) return;
     dragging = true;
+    rec.drag = true;
+    applyPartSize(rec);
+    moveTo(rec, rec.sx, rec.sy);
     el.setPointerCapture(e.pointerId);
     el.classList.add('dragging');
     const s = $('stage').getBoundingClientRect();
@@ -595,6 +619,7 @@ function attachDrag(rec) {
   const finish = () => {
     if (!dragging) return;
     dragging = false;
+    rec.drag = false;
     el.classList.remove('dragging');
     const fr = state.faceRect;
     const inside = rec.sx >= fr.x && rec.sx <= fr.x + fr.w &&
@@ -606,6 +631,7 @@ function attachDrag(rec) {
       el.classList.add('locked');
       updateBlindProgress();
     } else {
+      applyPartSize(rec);
       moveTo(rec, rec.home.sx, rec.home.sy);
     }
   };
@@ -649,6 +675,8 @@ function openCurtain() {
   $('score-value').textContent = state.lastScore;
   $('panel-play').classList.add('hidden');
   $('panel-result').classList.remove('hidden');
+  state.shareUrl = null;
+  state.sharePromise = uploadShare();
   renderProfileUI();
   setHint(t('hintDone'));
 }
@@ -721,14 +749,17 @@ async function buildResultBlob() {
   ctx.fillStyle = '#fffdf7'; ctx.fill();
   ctx.strokeStyle = '#e2d9c2'; ctx.lineWidth = 3; ctx.stroke();
 
-  ctx.drawImage($('face-img'), fx, PAD, fw, fh);
-  for (const dp of zOrdered(def.parts)) {
+  const drawPart = (dp) => {
     const rec = state.parts.get(dp.id);
-    if (!rec || !rec.placed) continue;
+    if (!rec || !rec.placed) return;
     ctx.drawImage(rec.el,
       fx + (rec.x - dp.w / 2) * scale, PAD + (rec.y - dp.h / 2) * scale,
       dp.w * scale, dp.h * scale);
-  }
+  };
+  const zparts = zOrdered(def.parts);
+  for (const dp of zparts) if ((dp.z || 0) < 0) drawPart(dp);
+  ctx.drawImage($('face-img'), fx, PAD, fw, fh);
+  for (const dp of zparts) if ((dp.z || 0) >= 0) drawPart(dp);
 
   const cx = CW / 2;
   let y = PAD + fh + 66;
@@ -759,6 +790,33 @@ async function buildResultBlob() {
   return new Promise((resolve) => cv.toBlob(resolve, 'image/png'));
 }
 
+/* 把結果圖上傳成分享卡（/s/<id> 帶 og:image，X/FB 會顯示大圖卡片）*/
+async function uploadShare() {
+  try {
+    const blob = await buildResultBlob();
+    if (!blob) return null;
+    const q = new URLSearchParams({
+      face: L(state.faceEntry.label),
+      name: (loadProfile() || {}).name || '',
+      score: String(state.lastScore),
+    });
+    const res = await fetch(`/api/share?${q}`, {
+      method: 'POST',
+      headers: { 'content-type': 'image/png' },
+      body: blob,
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    state.shareUrl = data.url;
+    return data.url;
+  } catch { return null; }
+}
+async function ensureShareUrl() {
+  if (state.shareUrl) return state.shareUrl;
+  if (state.sharePromise) { try { await state.sharePromise; } catch {} }
+  return state.shareUrl || location.origin;   // 上傳失敗就退回分享首頁網址
+}
+
 function shareMessage() {
   return t('shareText', L(state.faceEntry.label), state.lastScore, t('scoreUnit'));
 }
@@ -782,19 +840,24 @@ $('btn-share-native').addEventListener('click', async () => {
   if (!blob) return;
   const file = new File([blob], 'fukuwarai.png', { type: 'image/png' });
   try {
-    await navigator.share({ files: [file], text: `${shareMessage()} ${location.origin}` });
+    await navigator.share({ files: [file], text: `${shareMessage()} ${await ensureShareUrl()}` });
   } catch {}
 });
 
-$('btn-share-x').addEventListener('click', () => {
+$('btn-share-x').addEventListener('click', async () => {
   if (state.lastScore == null) return;
-  const u = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMessage())}&url=${encodeURIComponent(location.origin)}`;
-  window.open(u, '_blank', 'noopener');
+  const w = window.open('about:blank', '_blank');
+  const url = await ensureShareUrl();
+  const u = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMessage())}&url=${encodeURIComponent(url)}`;
+  if (w) w.location = u; else window.open(u, '_blank', 'noopener');
 });
 
-$('btn-share-fb').addEventListener('click', () => {
-  const u = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(location.origin)}&quote=${encodeURIComponent(shareMessage())}`;
-  window.open(u, '_blank', 'noopener');
+$('btn-share-fb').addEventListener('click', async () => {
+  if (state.lastScore == null) return;
+  const w = window.open('about:blank', '_blank');
+  const url = await ensureShareUrl();
+  const u = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(shareMessage())}`;
+  if (w) w.location = u; else window.open(u, '_blank', 'noopener');
 });
 
 /* 支援帶圖的原生分享才顯示「共有」鈕 */
@@ -922,14 +985,15 @@ function miniHTML(partsJson) {
   const order = new Map(zOrdered(def.parts).map((p, i) => [p.id, i]));
   arr = arr.filter((x) => byId.has(x.id))
     .sort((a, b) => order.get(a.id) - order.get(b.id));
-  let html = `<span class="mini"><img class="mini-base" src="${esc(dir)}/${esc(def.base)}" alt="">`;
+  let html = `<span class="mini"><img class="mini-base" src="${esc(dir)}/${esc(def.base)}" style="z-index:0" alt="">`;
   for (const p of arr) {
     const dp = byId.get(p.id);
     if (!dp) continue;
     const w = dp.w * s, h = dp.h * s;
     const left = (Number(p.x) * s - w / 2).toFixed(1);
     const top = (Number(p.y) * s - h / 2).toFixed(1);
-    html += `<img src="${esc(dir)}/${esc(dp.img)}" style="width:${w.toFixed(1)}px;left:${left}px;top:${top}px" alt="">`;
+    const zi = (dp.z || 0) < 0 ? -1 : 1;
+    html += `<img src="${esc(dir)}/${esc(dp.img)}" style="width:${w.toFixed(1)}px;left:${left}px;top:${top}px;z-index:${zi}" alt="">`;
   }
   return html + '</span>';
 }
