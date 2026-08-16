@@ -207,6 +207,7 @@ const state = {
   shareUrl: null,
   sharePromise: null,
   canShareFiles: false,
+  fbUseNative: false,   // 真觸控裝置才讓 FB 鈕走原生分享
   board: { type: 'total', key: '', scope: 'all', context: 'menu' },
   markSel: '',
   menuGroup: null,   // null = カテゴリー層；有值 = 該群組的顔列表
@@ -933,7 +934,7 @@ $('btn-share-fb').addEventListener('click', async () => {
     setTimeout(() => { btn.textContent = orig; }, 1800);
   } catch {}
   // 手機：facebook.com/sharer 會被 FB App 攔截跳首頁，改走原生分享（圖＋文可直接進 FB App）
-  if (state.canShareFiles) {
+  if (state.fbUseNative) {
     try {
       const blob = await buildResultBlob();
       const file = new File([blob], 'fukuwarai.png', { type: 'image/png' });
@@ -954,6 +955,10 @@ $('btn-share-fb').addEventListener('click', async () => {
     if (navigator.canShare && navigator.canShare({ files: [f] })) {
       state.canShareFiles = true;
       $('btn-share-native').classList.remove('hidden');
+      // 只有真的觸控裝置（含偽裝成 Mac 的 iPad）FB 鈕才改走原生分享；
+      // 桌機（Mac Safari 也支援檔案分享）維持 FB sharer 彈窗
+      const touch = navigator.maxTouchPoints > 1 && !/Windows/i.test(navigator.userAgent);
+      state.fbUseNative = touch;
     }
   } catch {}
 })();

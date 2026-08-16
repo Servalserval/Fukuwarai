@@ -22,8 +22,8 @@ git push
 # ── 回 dev 準備下一輪 ─────────────────
 git checkout dev
 
-cd ~/fukuwarai/fukuwarai && unzip -o ~/fukuwarai-langswitch.zip -d /tmp/ && bash /tmp/fukuwarai-langswitch/apply.sh .
+cd ~/fukuwarai/fukuwarai && unzip -o ~/fukuwarai-fbdesktop.zip -d /tmp/ && bash /tmp/fukuwarai-fbdesktop/apply.sh .
 
 git add *
-git commit -m "Add multilanguage to repost"
+git commit -m "Regarding Facebook Retweet"
 git push
