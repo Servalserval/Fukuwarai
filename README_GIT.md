@@ -22,7 +22,7 @@ git push
 # ── 回 dev 準備下一輪 ─────────────────
 git checkout dev
 
-cd ~/fukuwarai/fukuwarai && unzip -o ~/fukuwarai-fbmobile.zip -d /tmp/ && bash /tmp/fukuwarai-fbmobile/apply.sh .
+cd ~/fukuwarai/fukuwarai && unzip -o ~/fukuwarai-langswitch.zip -d /tmp/ && bash /tmp/fukuwarai-langswitch/apply.sh .
 
 git add *
 git commit -m "Add multilanguage to repost"

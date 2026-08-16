@@ -219,6 +219,11 @@ function setLang(l) {
   lang = l;
   try { localStorage.setItem(LANG_KEY, l); } catch {}
   applyTexts();
+  // 結果畫面切語言 → 分享卡用新語言重做（圖上的單位、卡片標題跟著換）
+  if (state.phase === 'opened' || state.phase === 'done') {
+    state.shareUrl = null;
+    state.sharePromise = uploadShare();
+  }
 }
 function renderLangRow() {
   for (const b of document.querySelectorAll('.lang-btn')) {
