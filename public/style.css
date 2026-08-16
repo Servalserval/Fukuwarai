@@ -281,3 +281,6 @@ body{
 /* ── v2.2: two-level menu ── */
 .menu-sub{display:flex;align-items:center;gap:10px;margin:2px 0 4px}
 .crumb{font-family:var(--disp);font-size:18px;color:var(--washi);letter-spacing:.12em}
+
+/* ── v2.4: latin/mixed title sizing ── */
+.title.latin{font-size:clamp(24px,6.5vw,38px);letter-spacing:.08em}

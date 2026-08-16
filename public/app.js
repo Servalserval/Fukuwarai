@@ -15,8 +15,9 @@ const LANG_KEY = 'fukuwarai_lang';
 const LANGS = {
   ja: {
     htmlLang: 'ja',
+    title: 'リグロス福笑い',
     lead: 'かおを えらんでください',
-    leadGroup: 'カテゴリーを えらんでください',
+    leadGroup: 'メンバーをえらんでください',
     backToGroups: '← カテゴリー',
     register: 'なまえを登録する',
     ranking: 'ランキング',
@@ -62,8 +63,9 @@ const LANGS = {
   },
   zh: {
     htmlLang: 'zh-Hant',
+    title: 'Regloss 笑福面',
     lead: '選一張臉吧',
-    leadGroup: '先選一個分類',
+    leadGroup: '先選一個成員',
     backToGroups: '← 回分類',
     register: '登錄名字',
     ranking: '排行榜',
@@ -109,8 +111,9 @@ const LANGS = {
   },
   en: {
     htmlLang: 'en',
+    title: 'Regloss Fukuwarai',
     lead: 'Pick a face',
-    leadGroup: 'Pick a category',
+    leadGroup: 'Pick a member',
     backToGroups: '← Categories',
     register: 'Set your name',
     ranking: 'Rankings',
@@ -170,6 +173,12 @@ const t = (key, ...args) => {
   const v = LANGS[lang][key];
   return typeof v === 'function' ? v(...args) : v;
 };
+/* faces.json 的 label 可以是字串（各語共用）或 {ja, zh, en} 物件 */
+const L = (v) => {
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  return v[lang] || v.ja || Object.values(v)[0] || '';
+};
 
 const $ = (id) => document.getElementById(id);
 const screens = { menu: $('screen-menu'), game: $('screen-game') };
@@ -210,6 +219,10 @@ function applyTexts() {
   document.documentElement.lang = LANGS[lang].htmlLang;
   renderLangRow();
 
+  $('title-text').textContent = t('title');
+  document.title = t('title');
+  document.querySelector('.title').classList.toggle('latin', lang !== 'ja');
+
   $('btn-menu-board').textContent = t('ranking');
   $('btn-board').textContent = t('ranking');
   $('btn-back').textContent = t('back');
@@ -243,8 +256,8 @@ function applyTexts() {
   else if (state.phase === 'opened' || state.phase === 'done') setHint(t('hintDone'));
   else setHint('');
 
-  if (state.def) {
-    $('face-title').textContent = `${state.def.label}（${t('artist', state.def.artist)}）`;
+  if (state.faceEntry && state.def) {
+    $('face-title').textContent = `${L(state.faceEntry.label)}（${t('artist', state.def.artist)}）`;
   }
   const noneBtn = document.querySelector('.mark-btn.none');
   if (noneBtn) noneBtn.textContent = t('none');
@@ -371,7 +384,7 @@ function groupsOf() {
     if (!out[key]) {
       const g = reg.groups && reg.groups[key];
       out[key] = {
-        label: (typeof g === 'string' ? g : (g && g.label)) || key,
+        label: L(typeof g === 'string' ? g : (g && g.label)) || key,
         cover: (g && typeof g === 'object' && g.cover) || f.id,
         faces: [],
       };
@@ -412,7 +425,8 @@ function refreshMenu() {
     $('group-crumb').textContent = g.label;
     $('lead').textContent = t('lead');
     for (const f of g.faces) {
-      const primary = f.label === g.label ? f.artist : f.label;
+      const fLabel = L(f.label);
+      const primary = fLabel === g.label ? f.artist : fLabel;
       const showChip = primary !== f.artist;
       const card = document.createElement('button');
       card.type = 'button';
@@ -439,7 +453,7 @@ async function startFace(entry) {
   state.faceEntry = entry;
   state.def = state.defs[entry.id] ||
     await (await fetch(`${entry.dir}/face.json`)).json();
-  $('face-title').textContent = `${state.def.label}（${t('artist', state.def.artist)}）`;
+  $('face-title').textContent = `${L(entry.label)}（${t('artist', state.def.artist)}）`;
   $('face-img').src = `${entry.dir}/${state.def.base}`;
   buildParts();
   showScreen('game');
@@ -717,7 +731,8 @@ function renderBoardTabs() {
     st.appendChild(el);
   }
   $('board-title').textContent =
-    b.type === 'face' && state.def ? t('boardTitleFace', state.def.label) : t('boardTitle');
+    b.type === 'face' && state.faceEntry
+      ? t('boardTitleFace', L(state.faceEntry.label)) : t('boardTitle');
 }
 
 async function fetchBoard() {

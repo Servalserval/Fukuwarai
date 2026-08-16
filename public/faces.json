@@ -1,30 +1,50 @@
 {
   "groups": {
     "example": {
-      "label": "サンプル",
+      "label": {
+        "ja": "サンプル",
+        "zh": "範例",
+        "en": "Example"
+      },
       "cover": "example/okame"
     },
     "hajime": {
-      "label": "はじめ",
+      "label": {
+        "ja": "はじめ",
+        "zh": "Hajime",
+        "en": "Hajime"
+      },
       "cover": "hajime/meru"
     }
   },
   "faces": [
     {
       "id": "example/okame",
-      "label": "おかめ",
+      "label": {
+        "ja": "おかめ",
+        "zh": "阿多福",
+        "en": "Okame"
+      },
       "artist": "sample",
       "dir": "face/example/okame"
     },
     {
       "id": "example/oni",
-      "label": "おに",
+      "label": {
+        "ja": "おに",
+        "zh": "鬼",
+        "en": "Oni"
+      },
       "artist": "sample",
       "dir": "face/example/oni"
     },
     {
       "id": "hajime/meru",
-      "label": "はじめ",
+      "label": {
+        "ja": "はじめ",
+        "zh": "Hajime",
+        "en": "Hajime"
+      },
       "artist": "メル",
       "dir": "face/hajime/meru"
     }
