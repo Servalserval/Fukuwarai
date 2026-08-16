@@ -7,14 +7,26 @@ const esc = (s) => String(s).replace(/[&<>"']/g,
 export async function onRequestGet({ params, env, request }) {
   const id = String(params.id || '');
   if (!/^[a-f0-9]{16}$/.test(id) || !env.DB) return Response.redirect(new URL('/', request.url), 302);
-  const row = await env.DB
-    .prepare('SELECT face, name, score FROM shares WHERE id = ?1').bind(id).first();
+  let row;
+  try {
+    row = await env.DB
+      .prepare('SELECT face, name, score, lang FROM shares WHERE id = ?1').bind(id).first();
+  } catch {
+    row = await env.DB
+      .prepare('SELECT face, name, score FROM shares WHERE id = ?1').bind(id).first();
+  }
   if (!row) return Response.redirect(new URL('/', request.url), 302);
 
   const origin = new URL(request.url).origin;
   const img = `${origin}/api/shot/${id}`;
-  const who = row.name ? `${row.name}：` : '';
-  const brag = `${who}「${row.face}」${row.score}点！`;
+  const BRAGS = {
+    ja: (s) => `リグロス福笑いで${s}点のいい成績とった！`,
+    zh: (s) => `我在Regloss笑福面中取得了${s}分的好成績！`,
+    en: (s) => `I scored ${s} points in Regloss Fukuwarai!`,
+  };
+  const mk = BRAGS[row.lang] || BRAGS.ja;
+  const who = row.name ? (row.lang === 'en' ? `${row.name}: ` : `${row.name}：`) : '';
+  const brag = `${who}${mk(row.score)}`;
   const desc = 'めかくしで かおをつくる ふくわらいゲーム ─ リグロス福笑い';
   const html = `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">

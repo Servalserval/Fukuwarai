@@ -22,7 +22,7 @@ git push
 # ── 回 dev 準備下一輪 ─────────────────
 git checkout dev
 
-cd ~/fukuwarai/fukuwarai && unzip -o ~/fukuwarai-sharetext.zip -d /tmp/ && bash /tmp/fukuwarai-sharetext/apply.sh .
+cd ~/fukuwarai/fukuwarai && unzip -o ~/fukuwarai-cardlang.zip -d /tmp/ && bash /tmp/fukuwarai-cardlang/apply.sh .
 
 git add *
 git commit -m "Add multilanguage to repost"

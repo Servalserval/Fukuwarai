@@ -862,6 +862,7 @@ async function uploadShare() {
       face: L(state.faceEntry.label),
       name: (loadProfile() || {}).name || '',
       score: String(state.lastScore),
+      lang,
     });
     const res = await fetch(`/api/share?${q}`, {
       method: 'POST',

@@ -29,15 +29,25 @@ export async function onRequestPost({ request, env }) {
   const name = clean(u.searchParams.get('name') || '', 12);
   const score = Number(u.searchParams.get('score'));
   if (!face || !Number.isInteger(score) || score < 0 || score > 10000) return err(400, 'bad meta');
+  const langP = u.searchParams.get('lang');
+  const lang = ['ja', 'zh', 'en'].includes(langP) ? langP : 'ja';
 
   const id = [...crypto.getRandomValues(new Uint8Array(8))]
     .map((b) => b.toString(16).padStart(2, '0')).join('');
 
   await env.DB.prepare("DELETE FROM shares WHERE created_at < datetime('now', '-60 day')").run();
-  await env.DB
-    .prepare('INSERT INTO shares (id, face, name, score, png) VALUES (?1, ?2, ?3, ?4, ?5)')
-    .bind(id, face, name || null, score, buf)
-    .run();
+  try {
+    await env.DB
+      .prepare('INSERT INTO shares (id, face, name, score, png, lang) VALUES (?1, ?2, ?3, ?4, ?5, ?6)')
+      .bind(id, face, name || null, score, buf, lang)
+      .run();
+  } catch {
+    // lang 欄位還沒 migration（0004）時退回舊寫法，分享照常運作
+    await env.DB
+      .prepare('INSERT INTO shares (id, face, name, score, png) VALUES (?1, ?2, ?3, ?4, ?5)')
+      .bind(id, face, name || null, score, buf)
+      .run();
+  }
 
   const origin = new URL(request.url).origin;
   return json({ id, url: `${origin}/s/${id}` });
