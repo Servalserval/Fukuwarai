@@ -391,6 +391,13 @@ function computeScore(def, placements) {
   return Math.round((sum / def.parts.length) * 10000);
 }
 
+/* 圖層優先度：z 大的在上（預設 0），同 z 照 face.json 陣列順序 */
+function zOrdered(defParts) {
+  return defParts.map((p, i) => ({ p, i }))
+    .sort((a, b) => ((a.p.z || 0) - (b.p.z || 0)) || (a.i - b.i))
+    .map((o) => o.p);
+}
+
 const esc = (s) => String(s).replace(/[&<>"']/g,
   (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 

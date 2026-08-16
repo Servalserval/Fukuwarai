@@ -22,8 +22,8 @@ git push
 # ── 回 dev 準備下一輪 ─────────────────
 git checkout dev
 
-cd ~/fukuwarai/fukuwarai && unzip -o ~/fukuwarai-swap.zip -d /tmp/ && bash /tmp/fukuwarai-swap/apply.sh .
+cd ~/fukuwarai/fukuwarai && unzip -o ~/fukuwarai-menufix.zip -d /tmp/ && bash /tmp/fukuwarai-menufix/apply.sh .
 
 git add *
-git commit -m "Add Autoscroll if space is not enough"
+git commit -m "Fix the problem that all cards are gone"
 git push
