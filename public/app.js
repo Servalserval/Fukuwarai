@@ -344,6 +344,13 @@ function computeScore(def, placements) {
   return Math.round((sum / def.parts.length) * 10000);
 }
 
+/* 圖層優先度：z 大的在上（預設 0），同 z 照 face.json 陣列順序 */
+function zOrdered(defParts) {
+  return defParts.map((p, i) => ({ p, i }))
+    .sort((a, b) => ((a.p.z || 0) - (b.p.z || 0)) || (a.i - b.i))
+    .map((o) => o.p);
+}
+
 const esc = (s) => String(s).replace(/[&<>"']/g,
   (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -367,7 +374,7 @@ function previewHTML(f) {
   const fit = (def.width / def.height >= 0.75) ? 'width:100%' : 'height:100%';
   let html = `<span class="pv-frame"><span class="preview" style="aspect-ratio:${def.width}/${def.height};${fit}">` +
     `<img class="pv-base" src="${esc(f.dir)}/${esc(def.base)}" alt="">`;
-  for (const p of def.parts) {
+  for (const p of zOrdered(def.parts)) {
     const l = ((p.x - p.w / 2) / def.width * 100).toFixed(2);
     const tp = ((p.y - p.h / 2) / def.height * 100).toFixed(2);
     const w = (p.w / def.width * 100).toFixed(2);
@@ -470,6 +477,7 @@ function buildParts() {
     el.src = `${state.faceEntry.dir}/${dp.img}`;
     el.alt = dp.label || dp.id;
     el.draggable = false;
+    el.style.zIndex = String(10 + Math.max(0, Math.min(15, dp.z || 0)));
     layer.appendChild(el);
     const rec = { def: dp, el, x: 0, y: 0, placed: false, home: { sx: 0, sy: 0 } };
     state.parts.set(dp.id, rec);
@@ -783,6 +791,9 @@ function miniHTML(partsJson) {
   if (!Array.isArray(arr)) return '<span class="mini"></span>';
   const W = 46, s = W / def.width;
   const byId = new Map(def.parts.map(p => [p.id, p]));
+  const order = new Map(zOrdered(def.parts).map((p, i) => [p.id, i]));
+  arr = arr.filter((x) => byId.has(x.id))
+    .sort((a, b) => order.get(a.id) - order.get(b.id));
   let html = `<span class="mini"><img class="mini-base" src="${esc(dir)}/${esc(def.base)}" alt="">`;
   for (const p of arr) {
     const dp = byId.get(p.id);

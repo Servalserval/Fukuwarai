@@ -79,7 +79,8 @@ npx wrangler pages deploy public        # 或 git push 由 Pages 自動部署
   "parts": [
     { "id": "eye_l", "label": "め・左", "img": "eye_l.png",
       "w": 120, "h": 80,          // 零件圖原始尺寸
-      "x": 289, "y": 560 }        // 正解「中心點」在 base.png 上的像素座標
+      "x": 289, "y": 560,         // 正解「中心點」在 base.png 上的像素座標
+      "z": 1 }                    // 圖層優先度：大的在上；不寫 = 0，同值照陣列順序
   ]
 }
 ```

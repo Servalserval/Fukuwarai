@@ -142,7 +142,7 @@ body{
   -webkit-backface-visibility:hidden;backface-visibility:hidden;
   transition:transform .18s ease;
 }
-.part.dragging{cursor:grabbing;transition:none}
+.part.dragging{cursor:grabbing;transition:none;z-index:25 !important}
 .part.locked{pointer-events:none}
 #stage.opened .part{transition:none}
 
