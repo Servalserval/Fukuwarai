@@ -21,3 +21,5 @@ git push
 
 # ── 回 dev 準備下一輪 ─────────────────
 git checkout dev
+
+cd ~/fukuwarai/fukuwarai && unzip -o ~/fukuwarai-cachebust.zip -d /tmp/ && bash /tmp/fukuwarai-cachebust/apply.sh .
