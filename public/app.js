@@ -591,6 +591,32 @@ function moveTo(rec, sx, sy) {
 function attachDrag(rec) {
   const el = rec.el;
   let dragging = false, offX = 0, offY = 0;
+  let lastX = 0, lastY = 0, rafId = 0;
+
+  // 用最後的手指座標重算零件位置（pointermove 和自動捲動共用）
+  const track = (cx, cy) => {
+    const s = $('stage').getBoundingClientRect();
+    let sx = cx - s.left - offX;
+    let sy = cy - s.top - offY;
+    sx = Math.max(8, Math.min(s.width - 8, sx));
+    sy = Math.max(8, Math.min(s.height - 8, sy));
+    moveTo(rec, sx, sy);
+  };
+
+  // 手指靠近螢幕上下邊緣時自動捲動頁面（零件在畫面外也拖得到臉）
+  const EDGE = 90;
+  const autoLoop = () => {
+    if (!dragging) return;
+    const vh = window.innerHeight;
+    let dy = 0;
+    if (lastY < EDGE) dy = -Math.ceil((EDGE - lastY) / 5);
+    else if (lastY > vh - EDGE) dy = Math.ceil((lastY - (vh - EDGE)) / 5);
+    if (dy !== 0) {
+      window.scrollBy(0, dy);
+      track(lastX, lastY);   // 捲動後零件跟著手指
+    }
+    rafId = requestAnimationFrame(autoLoop);
+  };
 
   el.addEventListener('pointerdown', (e) => {
     if (state.phase !== 'blind' || rec.placed) return;
@@ -603,23 +629,23 @@ function attachDrag(rec) {
     const s = $('stage').getBoundingClientRect();
     offX = (e.clientX - s.left) - rec.sx;
     offY = (e.clientY - s.top) - rec.sy;
+    lastX = e.clientX; lastY = e.clientY;
+    cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(autoLoop);
     e.preventDefault();
   });
 
   el.addEventListener('pointermove', (e) => {
     if (!dragging) return;
-    const s = $('stage').getBoundingClientRect();
-    let sx = e.clientX - s.left - offX;
-    let sy = e.clientY - s.top - offY;
-    sx = Math.max(8, Math.min(s.width - 8, sx));
-    sy = Math.max(8, Math.min(s.height - 8, sy));
-    moveTo(rec, sx, sy);
+    lastX = e.clientX; lastY = e.clientY;
+    track(lastX, lastY);
   });
 
   const finish = () => {
     if (!dragging) return;
     dragging = false;
     rec.drag = false;
+    cancelAnimationFrame(rafId);
     el.classList.remove('dragging');
     const fr = state.faceRect;
     const inside = rec.sx >= fr.x && rec.sx <= fr.x + fr.w &&
