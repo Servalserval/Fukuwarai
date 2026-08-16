@@ -1,6 +1,13 @@
 {
   "groups": {
-    "example": "サンプル"
+    "example": {
+      "label": "サンプル",
+      "cover": "example/okame"
+    },
+    "hajime": {
+      "label": "はじめ",
+      "cover": "hajime/meru"
+    }
   },
   "faces": [
     {
@@ -14,6 +21,12 @@
       "label": "おに",
       "artist": "sample",
       "dir": "face/example/oni"
+    },
+    {
+      "id": "hajime/meru",
+      "label": "はじめ",
+      "artist": "メル",
+      "dir": "face/hajime/meru"
     }
   ]
 }

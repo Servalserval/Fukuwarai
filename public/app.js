@@ -1,15 +1,175 @@
-/* 笑福面 ─ front-end v2
+/* 笑福面 ─ front-end v2.1
  * 座標系：模型一律用「底圖像素座標」(face.json 的 width/height)，
  * 畫面上再乘 scale 換算，resize 時重排即可。
- * v2：本機プロフィール（なまえ＋推しマーク）、排行榜預覽、
- *     當天榜／キャラ合計榜／総合計榜。
+ * v2.1：推しマーク支援雙 emoji、介面 日本語/繁體中文/English 三語切換。
  */
 'use strict';
 
-/* 推しマーク清單：想換就改這裡（會顯示在登録画面跟排行榜） */
-const MARKS = ['🐧','🎹','⚡','✨','🌃','🖋️','🐚'];
+/* 推しマーク清單：想換就改這裡（支援 1～2 個 emoji 的組合） */
+const MARKS = ['🐧⚡', '🎹✨', '🌃', '🖋️', '🐚'];
 
 const PROFILE_KEY = 'fukuwarai_profile';
+const LANG_KEY = 'fukuwarai_lang';
+
+/* ── 三語字串表 ───────────────────────────────────────── */
+const LANGS = {
+  ja: {
+    htmlLang: 'ja',
+    lead: 'かおを えらんでください',
+    leadGroup: 'カテゴリーを えらんでください',
+    backToGroups: '← カテゴリー',
+    register: 'なまえを登録する',
+    ranking: 'ランキング',
+    back: '← もどる',
+    start: 'はじめる',
+    open: 'オープン',
+    retry: 'もういちど',
+    chooseFace: 'かおをえらぶ',
+    scoreLabel: 'とくてん',
+    scoreUnit: '点',
+    submitted: (rank, best, u) => `登録しました！ 第 ${rank} 位（ベスト ${best}${u}）`,
+    submit: 'ランキングに登録',
+    sending: '送信中…',
+    submitFail: '登録に失敗しました。もう一度どうぞ。',
+    noProfile: 'なまえが未登録です',
+    asPlayer: (p) => `${p} として登録`,
+    edit: 'へんこう',
+    profileTitle: 'なまえの登録',
+    nameLabel: 'なまえ（12文字まで）',
+    namePh: 'なまえ',
+    markLabel: '推しマーク',
+    none: 'なし',
+    profileNote: 'この端末に保存されます。次からは自動でこのなまえで登録されます。',
+    save: '保存する',
+    close: 'とじる',
+    thisFace: 'この顔',
+    sum: (label) => `${label} 合計`,
+    grandTotal: '総合計',
+    allTime: '全期間',
+    today: '今日',
+    boardTitle: 'ランキング',
+    boardTitleFace: (label) => `ランキング ─ ${label}`,
+    empty: 'まだ記録がありません。いちばんのりのチャンス！',
+    loading: 'よみこみ中…',
+    hintReady: '「はじめる」を押すと めかくしが おります',
+    hintBlind: (n) => `パーツを かおの中へ スライド！（のこり ${n}）`,
+    hintAllPlaced: 'ぜんぶ おいた！「オープン」で ごたいめん',
+    hintDone: 'できあがり！ランキングに登録しよう',
+    curtain: 'めかくし中',
+    curtainLatin: false,
+    artist: (a) => `絵：${a}`,
+    facesUnit: (n) => `${n}面`,
+  },
+  zh: {
+    htmlLang: 'zh-Hant',
+    lead: '選一張臉吧',
+    leadGroup: '先選一個分類',
+    backToGroups: '← 回分類',
+    register: '登錄名字',
+    ranking: '排行榜',
+    back: '← 返回',
+    start: '開始',
+    open: '開幕',
+    retry: '再玩一次',
+    chooseFace: '換一張臉',
+    scoreLabel: '得分',
+    scoreUnit: '分',
+    submitted: (rank, best, u) => `登錄完成！第 ${rank} 名（最佳 ${best}${u}）`,
+    submit: '登錄到排行榜',
+    sending: '送出中…',
+    submitFail: '登錄失敗了，再試一次。',
+    noProfile: '還沒登錄名字',
+    asPlayer: (p) => `以 ${p} 的身分登錄`,
+    edit: '更改',
+    profileTitle: '登錄名字',
+    nameLabel: '名字（最多 12 字）',
+    namePh: '名字',
+    markLabel: '推しマーク（應援標誌）',
+    none: '無',
+    profileNote: '會保存在這個裝置上，之後送分會自動使用這個名字。',
+    save: '儲存',
+    close: '關閉',
+    thisFace: '這張臉',
+    sum: (label) => `${label} 總分`,
+    grandTotal: '全部總分',
+    allTime: '全期間',
+    today: '今天',
+    boardTitle: '排行榜',
+    boardTitleFace: (label) => `排行榜 ─ ${label}`,
+    empty: '還沒有任何紀錄，搶頭香的機會！',
+    loading: '載入中…',
+    hintReady: '按「開始」，蒙眼布就會降下來',
+    hintBlind: (n) => `把零件滑進臉裡！（剩 ${n} 個）`,
+    hintAllPlaced: '全部放好了！按「開幕」見真章',
+    hintDone: '完成！登錄到排行榜吧',
+    curtain: '蒙眼中',
+    curtainLatin: false,
+    artist: (a) => `繪師：${a}`,
+    facesUnit: (n) => `${n} 張`,
+  },
+  en: {
+    htmlLang: 'en',
+    lead: 'Pick a face',
+    leadGroup: 'Pick a category',
+    backToGroups: '← Categories',
+    register: 'Set your name',
+    ranking: 'Rankings',
+    back: '← Back',
+    start: 'Start',
+    open: 'Open!',
+    retry: 'Play again',
+    chooseFace: 'Choose face',
+    scoreLabel: 'SCORE',
+    scoreUnit: ' pts',
+    submitted: (rank, best, u) => `Submitted! Rank #${rank} (best ${best}${u})`,
+    submit: 'Submit score',
+    sending: 'Sending…',
+    submitFail: 'Submit failed. Please try again.',
+    noProfile: 'No name set yet',
+    asPlayer: (p) => `Playing as ${p}`,
+    edit: 'Edit',
+    profileTitle: 'Your name',
+    nameLabel: 'Name (up to 12 characters)',
+    namePh: 'Name',
+    markLabel: 'Oshi mark',
+    none: 'None',
+    profileNote: 'Saved on this device. Future scores will use this name automatically.',
+    save: 'Save',
+    close: 'Close',
+    thisFace: 'This face',
+    sum: (label) => `${label} total`,
+    grandTotal: 'Grand total',
+    allTime: 'All-time',
+    today: 'Today',
+    boardTitle: 'Rankings',
+    boardTitleFace: (label) => `Rankings — ${label}`,
+    empty: 'No scores yet — be the first!',
+    loading: 'Loading…',
+    hintReady: 'Press Start to drop the blindfold',
+    hintBlind: (n) => `Slide the parts onto the face! (${n} left)`,
+    hintAllPlaced: 'All placed! Hit Open to reveal',
+    hintDone: 'Done! Submit your score',
+    curtain: 'NO PEEKING',
+    curtainLatin: true,
+    artist: (a) => `Art: ${a}`,
+    facesUnit: (n) => `${n} faces`,
+  },
+};
+
+function detectLang() {
+  let saved = null;
+  try { saved = localStorage.getItem(LANG_KEY); } catch {}
+  if (saved && LANGS[saved]) return saved;
+  const nav = (navigator.language || 'ja').toLowerCase();
+  if (nav.startsWith('zh')) return 'zh';
+  if (nav.startsWith('en')) return 'en';
+  return 'ja';
+}
+let lang = detectLang();
+const t = (key, ...args) => {
+  const v = LANGS[lang][key];
+  return typeof v === 'function' ? v(...args) : v;
+};
 
 const $ = (id) => document.getElementById(id);
 const screens = { menu: $('screen-menu'), game: $('screen-game') };
@@ -24,8 +184,73 @@ const state = {
   parts: new Map(),  // id -> {def, el, x, y(底圖座標), placed, home:{sx,sy}}
   lastScore: null,
   board: { type: 'total', key: '', scope: 'all', context: 'menu' },
-  markSel: '',       // 登録画面暫存的マーク
+  markSel: '',
+  menuGroup: null,   // null = カテゴリー層；有值 = 該群組的顔列表
 };
+
+/* ── 語言切換 ─────────────────────────────────────────── */
+function setLang(l) {
+  if (!LANGS[l]) return;
+  lang = l;
+  try { localStorage.setItem(LANG_KEY, l); } catch {}
+  applyTexts();
+}
+function renderLangRow() {
+  for (const b of document.querySelectorAll('.lang-btn')) {
+    b.classList.toggle('sel', b.dataset.lang === lang);
+  }
+}
+for (const b of document.querySelectorAll('.lang-btn')) {
+  b.addEventListener('click', () => setLang(b.dataset.lang));
+}
+
+/* 把目前語言套到整個畫面（含依 phase 而異的字） */
+function applyTexts() {
+  document.documentElement.lang = LANGS[lang].htmlLang;
+  renderLangRow();
+
+  $('btn-menu-board').textContent = t('ranking');
+  $('btn-board').textContent = t('ranking');
+  $('btn-back').textContent = t('back');
+  $('btn-retry').textContent = t('retry');
+  $('btn-menu').textContent = t('chooseFace');
+  $('btn-submit').textContent = t('submit');
+  $('score-label-el').textContent = t('scoreLabel');
+  $('score-unit-el').textContent = t('scoreUnit');
+  $('btn-edit-profile').textContent = t('edit');
+
+  $('profile-title').textContent = t('profileTitle');
+  $('name-label').textContent = t('nameLabel');
+  $('profile-name').placeholder = t('namePh');
+  $('mark-label').textContent = t('markLabel');
+  $('profile-note').textContent = t('profileNote');
+  $('btn-profile-save').textContent = t('save');
+  $('btn-profile-close').textContent = t('close');
+  $('btn-board-close').textContent = t('close');
+  $('board-loading').textContent = t('loading');
+  $('board-empty').textContent = t('empty');
+
+  const ct = document.querySelector('.curtain-text');
+  ct.textContent = t('curtain');
+  ct.classList.toggle('latin', !!LANGS[lang].curtainLatin);
+
+  // phase 相關
+  const btn = $('btn-main');
+  btn.textContent = state.phase === 'blind' ? t('open') : t('start');
+  if (state.phase === 'ready') setHint(t('hintReady'));
+  else if (state.phase === 'blind') updateBlindProgress();
+  else if (state.phase === 'opened' || state.phase === 'done') setHint(t('hintDone'));
+  else setHint('');
+
+  if (state.def) {
+    $('face-title').textContent = `${state.def.label}（${t('artist', state.def.artist)}）`;
+  }
+  const noneBtn = document.querySelector('.mark-btn.none');
+  if (noneBtn) noneBtn.textContent = t('none');
+  renderProfileUI();
+  refreshMenu();
+  if (!$('board-overlay').classList.contains('hidden')) renderBoardTabs();
+}
 
 /* ── プロフィール（localStorage）─────────────────────── */
 function loadProfile() {
@@ -38,15 +263,15 @@ function loadProfile() {
   return null;
 }
 function saveProfile(name, mark) {
-  localStorage.setItem(PROFILE_KEY, JSON.stringify({ name, mark }));
+  try { localStorage.setItem(PROFILE_KEY, JSON.stringify({ name, mark })); } catch {}
   renderProfileUI();
 }
 function playerText(p) { return `${p.mark ? p.mark + ' ' : ''}${p.name}`; }
 
 function renderProfileUI() {
   const p = loadProfile();
-  $('profile-chip').textContent = p ? playerText(p) : 'なまえを登録する';
-  $('player-as').textContent = p ? `${playerText(p)} として登録` : 'なまえが未登録です';
+  $('profile-chip').textContent = p ? playerText(p) : t('register');
+  $('player-as').textContent = p ? t('asPlayer', playerText(p)) : t('noProfile');
 }
 
 function openProfile() {
@@ -58,7 +283,7 @@ function openProfile() {
   const noneBtn = document.createElement('button');
   noneBtn.type = 'button';
   noneBtn.className = 'mark-btn none' + (state.markSel === '' ? ' sel' : '');
-  noneBtn.textContent = 'なし';
+  noneBtn.textContent = t('none');
   noneBtn.addEventListener('click', () => { state.markSel = ''; syncMarkSel(); });
   grid.appendChild(noneBtn);
   for (const m of MARKS) {
@@ -108,35 +333,79 @@ function computeScore(def, placements) {
 const esc = (s) => String(s).replace(/[&<>"']/g,
   (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-/* ── 選單 ─────────────────────────────────────────────── */
+/* ── 選單（兩層：カテゴリー → 顔）───────────────────── */
 async function loadMenu() {
   const res = await fetch('faces.json');
   state.registry = await res.json();
-  const grid = $('face-grid');
-  grid.innerHTML = '';
-  for (const f of state.registry.faces) {
-    const card = document.createElement('button');
-    card.type = 'button';
-    card.className = 'face-card';
-    card.innerHTML =
-      `<img src="${esc(f.dir)}/base.png" alt="">` +
-      `<span class="fc-label">${esc(f.label)}</span>` +
-      `<span class="fc-artist">絵：${esc(f.artist)}</span>`;
-    card.addEventListener('click', () => startFace(f));
-    grid.appendChild(card);
-  }
+  refreshMenu();
   renderProfileUI();
 }
 
 function groupsOf() {
   const reg = state.registry || { faces: [] };
-  const g = {};
+  const out = {};
   for (const f of reg.faces) {
     const key = f.id.split('/')[0];
-    g[key] = (reg.groups && reg.groups[key]) || key;
+    if (!out[key]) {
+      const g = reg.groups && reg.groups[key];
+      out[key] = {
+        label: (typeof g === 'string' ? g : (g && g.label)) || key,
+        cover: (g && typeof g === 'object' && g.cover) || f.id,
+        faces: [],
+      };
+    }
+    out[key].faces.push(f);
   }
-  return g; // {example: 'サンプル', hajime: 'はじめ', ...}
+  return out;
 }
+
+function refreshMenu() {
+  if (!state.registry) return;
+  const grid = $('face-grid');
+  grid.innerHTML = '';
+  const gs = groupsOf();
+
+  if (!state.menuGroup || !gs[state.menuGroup]) {
+    // ── カテゴリー層
+    state.menuGroup = null;
+    $('menu-sub').classList.add('hidden');
+    $('lead').textContent = t('leadGroup');
+    for (const [key, g] of Object.entries(gs)) {
+      const coverFace = state.registry.faces.find((f) => f.id === g.cover) || g.faces[0];
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'face-card';
+      card.innerHTML =
+        `<img src="${esc(coverFace.dir)}/base.png" alt="">` +
+        `<span class="fc-label">${esc(g.label)}</span>` +
+        `<span class="fc-artist">${esc(t('facesUnit', g.faces.length))}</span>`;
+      card.addEventListener('click', () => { state.menuGroup = key; refreshMenu(); });
+      grid.appendChild(card);
+    }
+  } else {
+    // ── 顔層：如果顔的 label 跟群組同名（例：はじめ），主標改顯示繪師名
+    const g = gs[state.menuGroup];
+    $('menu-sub').classList.remove('hidden');
+    $('btn-group-back').textContent = t('backToGroups');
+    $('group-crumb').textContent = g.label;
+    $('lead').textContent = t('lead');
+    for (const f of g.faces) {
+      const primary = f.label === g.label ? f.artist : f.label;
+      const showChip = primary !== f.artist;
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'face-card';
+      card.innerHTML =
+        `<img src="${esc(f.dir)}/base.png" alt="">` +
+        `<span class="fc-label">${esc(primary)}</span>` +
+        (showChip ? `<span class="fc-artist"></span>` : '');
+      if (showChip) card.querySelector('.fc-artist').textContent = t('artist', f.artist);
+      card.addEventListener('click', () => startFace(f));
+      grid.appendChild(card);
+    }
+  }
+}
+$('btn-group-back').addEventListener('click', () => { state.menuGroup = null; refreshMenu(); });
 
 function showScreen(name) {
   screens.menu.classList.toggle('hidden', name !== 'menu');
@@ -148,7 +417,7 @@ async function startFace(entry) {
   state.faceEntry = entry;
   const res = await fetch(`${entry.dir}/face.json`);
   state.def = await res.json();
-  $('face-title').textContent = `${state.def.label}（絵：${state.def.artist}）`;
+  $('face-title').textContent = `${state.def.label}（${t('artist', state.def.artist)}）`;
   $('face-img').src = `${entry.dir}/${state.def.base}`;
   buildParts();
   showScreen('game');
@@ -182,14 +451,14 @@ function resetRound() {
   $('submit-msg').classList.remove('rank');
   $('btn-submit').disabled = false;
   const btn = $('btn-main');
-  btn.textContent = 'はじめる';
+  btn.textContent = t('start');
   btn.disabled = false;
   for (const rec of state.parts.values()) {
     rec.placed = false;
     rec.el.classList.remove('locked', 'dragging');
   }
   layout();
-  setHint('「はじめる」を押すと めかくしが おります');
+  setHint(t('hintReady'));
 }
 
 /* ── 版面計算 ─────────────────────────────────────────── */
@@ -206,7 +475,6 @@ function layout() {
   fb.style.width = fw + 'px';
   fb.style.height = fh + 'px';
 
-  // tray 高度：估兩排零件
   const maxPartH = Math.max(...state.def.parts.map(p => p.h)) * scale;
   const rows = Math.ceil(state.def.parts.length / 3);
   const tray = $('tray');
@@ -278,12 +546,12 @@ function attachDrag(rec) {
                    rec.sy >= fr.y && rec.sy <= fr.y + fr.h;
     if (inside) {
       rec.placed = true;
-      rec.x = (rec.sx - fr.x) / state.scale;   // 底圖座標
+      rec.x = (rec.sx - fr.x) / state.scale;
       rec.y = (rec.sy - fr.y) / state.scale;
       el.classList.add('locked');
       updateBlindProgress();
     } else {
-      moveTo(rec, rec.home.sx, rec.home.sy);   // 彈回 tray
+      moveTo(rec, rec.home.sx, rec.home.sy);
     }
   };
   el.addEventListener('pointerup', finish);
@@ -294,13 +562,13 @@ function updateBlindProgress() {
   const remain = [...state.parts.values()].filter(r => !r.placed).length;
   if (remain === 0) {
     $('btn-main').disabled = false;
-    setHint('ぜんぶ おいた！「オープン」で ごたいめん');
+    setHint(t('hintAllPlaced'));
   } else {
-    setHint(`パーツを かおの中へ スライド！（のこり ${remain}）`);
+    setHint(t('hintBlind', remain));
   }
 }
 
-function setHint(t) { $('hint').textContent = t; }
+function setHint(txt) { $('hint').textContent = txt; }
 
 /* ── 流程 ─────────────────────────────────────────────── */
 $('btn-main').addEventListener('click', () => {
@@ -308,7 +576,7 @@ $('btn-main').addEventListener('click', () => {
   if (state.phase === 'ready') {
     state.phase = 'blind';
     $('stage').classList.add('blind');
-    btn.textContent = 'オープン';
+    btn.textContent = t('open');
     btn.disabled = true;
     updateBlindProgress();
   } else if (state.phase === 'blind') {
@@ -327,7 +595,7 @@ function openCurtain() {
   $('panel-play').classList.add('hidden');
   $('panel-result').classList.remove('hidden');
   renderProfileUI();
-  setHint('できあがり！ランキングに登録しよう');
+  setHint(t('hintDone'));
 }
 
 $('btn-submit').addEventListener('click', async () => {
@@ -336,7 +604,7 @@ $('btn-submit').addEventListener('click', async () => {
   if (!profile) { openProfile(); return; }
   const btn = $('btn-submit');
   btn.disabled = true;
-  $('submit-msg').textContent = '送信中…';
+  $('submit-msg').textContent = t('sending');
   try {
     const body = {
       name: profile.name,
@@ -354,12 +622,12 @@ $('btn-submit').addEventListener('click', async () => {
     state.phase = 'done';
     $('score-value').textContent = data.score;
     const msg = $('submit-msg');
-    msg.textContent = `登録しました！ 第 ${data.rank} 位（ベスト ${data.best} 点）`;
+    msg.textContent = t('submitted', data.rank, data.best, t('scoreUnit'));
     msg.classList.add('rank');
     openBoard('game', { top: data.top });
   } catch {
     btn.disabled = false;
-    $('submit-msg').textContent = '登録に失敗しました。もう一度どうぞ。';
+    $('submit-msg').textContent = t('submitFail');
   }
 });
 
@@ -398,13 +666,13 @@ function renderBoardTabs() {
   const typeTabs = [];
   if (b.context === 'game') {
     const g = state.faceEntry.id.split('/')[0];
-    typeTabs.push({ t: 'face', k: state.faceEntry.id, label: 'この顔' });
-    typeTabs.push({ t: 'char', k: g, label: `${groupsOf()[g] || g} 合計` });
-    typeTabs.push({ t: 'total', k: '', label: '総合計' });
+    typeTabs.push({ t: 'face', k: state.faceEntry.id, label: t('thisFace') });
+    typeTabs.push({ t: 'char', k: g, label: t('sum', (groupsOf()[g] || { label: g }).label) });
+    typeTabs.push({ t: 'total', k: '', label: t('grandTotal') });
   } else {
     const gs = groupsOf();
-    for (const key of Object.keys(gs)) typeTabs.push({ t: 'char', k: key, label: `${gs[key]} 合計` });
-    typeTabs.push({ t: 'total', k: '', label: '総合計' });
+    for (const key of Object.keys(gs)) typeTabs.push({ t: 'char', k: key, label: t('sum', gs[key].label) });
+    typeTabs.push({ t: 'total', k: '', label: t('grandTotal') });
   }
   const tt = $('board-type-tabs');
   tt.innerHTML = '';
@@ -418,17 +686,16 @@ function renderBoardTabs() {
   }
   const st = $('board-scope-tabs');
   st.innerHTML = '';
-  for (const [scope, label] of [['all', '全期間'], ['today', '今日']]) {
+  for (const [scope, key] of [['all', 'allTime'], ['today', 'today']]) {
     const el = document.createElement('button');
     el.type = 'button';
     el.className = 'tab' + (b.scope === scope ? ' sel' : '');
-    el.textContent = label;
+    el.textContent = t(key);
     el.addEventListener('click', () => { b.scope = scope; renderBoardTabs(); fetchBoard(); });
     st.appendChild(el);
   }
-  const b2 = state.board;
   $('board-title').textContent =
-    b2.type === 'face' ? `ランキング ─ ${state.def ? state.def.label : ''}` : 'ランキング';
+    b.type === 'face' && state.def ? t('boardTitleFace', state.def.label) : t('boardTitle');
 }
 
 async function fetchBoard() {
@@ -460,11 +727,11 @@ function renderBoardList(top) {
       li.classList.add('mine'); marked = true;
     }
     const mk = row.mark ? `<span class="mk">${esc(row.mark)}</span>` : '';
-    const fc = (b.type !== 'face' && row.faces > 1) ? `<span class="fc">${row.faces}面</span>` : '';
+    const fc = (b.type !== 'face' && row.faces > 1) ? `<span class="fc">${esc(t('facesUnit', row.faces))}</span>` : '';
     li.innerHTML = `<span class="rk">${i + 1}</span>` +
       (b.type === 'face' ? miniHTML(row.parts) : '') +
       `${mk}<span class="nm">${esc(row.name)}</span>${fc}` +
-      `<span class="sc">${esc(row.score)}点</span>`;
+      `<span class="sc">${esc(row.score)}${esc(t('scoreUnit'))}</span>`;
     list.appendChild(li);
   });
   $('board-empty').classList.toggle('hidden', top.length > 0);
@@ -495,4 +762,5 @@ function miniHTML(partsJson) {
 window.addEventListener('resize', () => {
   if (state.phase !== 'menu' && state.def) layout();
 });
+applyTexts();
 loadMenu();

@@ -42,7 +42,7 @@ function cleanMark(v) {
   if (typeof v !== 'string') return null;
   const s = [...v.replace(/[\u0000-\u001f\u007f\s]/g, '')];
   if (!s.length) return null;
-  return s.slice(0, 4).join(''); // emoji 組合最多 4 個 code point
+  return s.slice(0, 8).join(''); // 雙 emoji 組合：最多 8 個 code point
 }
 
 /* 分數公式（要跟 public/app.js 的 computeScore 保持一致）。

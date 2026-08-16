@@ -1,0 +1,55 @@
+{
+  "label": "はじめ",
+  "artist": "メル",
+  "base": "base.png",
+  "width": 1388,
+  "height": 1121,
+  "tolerance": 0.22,
+  "parts": [
+    {
+      "id": "eye_l",
+      "label": "め・左",
+      "img": "eye_l.png",
+      "w": 204,
+      "h": 185,
+      "x": 443,
+      "y": 768
+    },
+    {
+      "id": "eye_r",
+      "label": "め・右",
+      "img": "eye_r.png",
+      "w": 204,
+      "h": 185,
+      "x": 961,
+      "y": 768
+    },
+    {
+      "id": "cheek_l",
+      "label": "ほっぺ・左",
+      "img": "cheek_l.png",
+      "w": 183,
+      "h": 141,
+      "x": 388,
+      "y": 830
+    },
+    {
+      "id": "cheek_r",
+      "label": "ほっぺ・右",
+      "img": "cheek_r.png",
+      "w": 182,
+      "h": 141,
+      "x": 1057,
+      "y": 818
+    },
+    {
+      "id": "mouth",
+      "label": "くち",
+      "img": "mouth.png",
+      "w": 133,
+      "h": 109,
+      "x": 704,
+      "y": 908
+    }
+  ]
+}

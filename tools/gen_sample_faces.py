@@ -133,6 +133,59 @@ def oni_mouth():
                   fill=(255, 252, 246, 255), outline=(180, 176, 170, 255))
     return img
 
+
+# ---------------------------------------------------------------- hajime (placeholder for メル art)
+def hajime_base():
+    img, d = canvas(W, H)
+    # 亂髮（深藍灰）
+    hair = []
+    for i in range(9):
+        x = 140 + i * 61
+        hair.append((x, 360))
+        hair.append((x + 30, 190 if i % 2 == 0 else 240))
+    hair.append((688, 360))
+    d.polygon(hair, fill=(46, 52, 74, 255))
+    d.ellipse([120, 200, 648, 560], fill=(46, 52, 74, 255))
+    # 臉
+    d.ellipse([94, 250, 674, 950], fill=(248, 236, 222, 255),
+              outline=(120, 96, 84, 255), width=7)
+    # 側髮
+    d.ellipse([70, 400, 180, 700], fill=(46, 52, 74, 255))
+    d.ellipse([588, 400, 698, 700], fill=(46, 52, 74, 255))
+    # 髮上的閃電標記（⚡ 感）
+    d.polygon([(430, 200), (392, 292), (424, 292), (386, 380), (462, 272), (428, 272), (466, 200)],
+              fill=(246, 201, 14, 255), outline=(160, 120, 8, 255))
+    return img
+
+def hajime_brow():
+    w, h = 120, 40
+    img, d = canvas(w, h)
+    d.rounded_rectangle([8, 12, 112, 28], radius=8, fill=(46, 52, 74, 255))
+    return img
+
+def hajime_eye():
+    w, h = 110, 84
+    img, d = canvas(w, h)
+    d.ellipse([6, 6, 104, 78], fill=(255, 255, 255, 255), outline=(46, 52, 74, 255), width=6)
+    d.ellipse([38, 22, 72, 62], fill=(52, 84, 140, 255))
+    d.ellipse([44, 28, 56, 40], fill=(255, 255, 255, 255))
+    return img
+
+def hajime_nose():
+    w, h = 70, 70
+    img, d = canvas(w, h)
+    pts = bezier((18, 16), (46, 34), (22, 56))
+    stroke(d, pts, 9, (150, 110, 90, 255))
+    return img
+
+def hajime_mouth():
+    w, h = 180, 96
+    img, d = canvas(w, h)
+    d.chord([10, -40, 170, 78], 20, 160, fill=(214, 88, 78, 255),
+            outline=(120, 34, 28, 255), width=6)
+    d.rounded_rectangle([46, 20, 134, 40], radius=9, fill=(255, 250, 244, 255))
+    return img
+
 # ---------------------------------------------------------------- 定義
 FACES = {
     "example/okame": {
@@ -159,10 +212,26 @@ FACES = {
             ("mouth",  "くち",    oni_mouth,(384, 838)),
         ],
     },
+    "hajime/meru": {
+        "label": "はじめ", "artist": "メル",
+        "base": hajime_base,
+        "parts": [
+            ("brow_l", "まゆ・左", hajime_brow, (289, 500)),
+            ("brow_r", "まゆ・右", hajime_brow, (479, 500)),
+            ("eye_l",  "め・左",  hajime_eye,  (289, 585)),
+            ("eye_r",  "め・右",  hajime_eye,  (479, 585)),
+            ("nose",   "はな",    hajime_nose, (384, 680)),
+            ("mouth",  "くち",    hajime_mouth,(384, 810)),
+        ],
+    },
 }
 
+
 def main():
-    registry = {"groups": {"example": "サンプル"}, "faces": []}
+    registry = {"groups": {
+        "example": {"label": "サンプル", "cover": "example/okame"},
+        "hajime": {"label": "はじめ", "cover": "hajime/meru"},
+    }, "faces": []}
     for face_id, spec in FACES.items():
         outdir = os.path.join(ROOT, face_id)
         os.makedirs(outdir, exist_ok=True)

@@ -85,16 +85,23 @@ npx wrangler pages deploy public        # 或 git push 由 Pages 自動部署
 ```
 
 3. 在 `public/faces.json` 登錄一筆，キャラ第一次出現時順便在 `groups`
-   加顯示名：
+   加顯示名和封面（選單第一層那張卡要用哪張臉的底圖）：
 
 ```json
 {
-  "groups": { "example": "サンプル", "hajime": "はじめ" },
+  "groups": {
+    "example": { "label": "サンプル", "cover": "example/okame" },
+    "hajime":  { "label": "はじめ",   "cover": "hajime/meru" }
+  },
   "faces": [
-    { "id": "hajime/azuma", "label": "はじめ", "artist": "azuma", "dir": "face/hajime/azuma" }
+    { "id": "hajime/meru", "label": "はじめ", "artist": "メル", "dir": "face/hajime/meru" }
   ]
 }
 ```
+
+選單是兩層：先選カテゴリー（群組卡用 `cover` 指定的底圖），進去才是各張臉。
+臉層的卡片標題規則：`label` 跟群組名相同時（同一角色多位繪師的情況），
+主標自動改顯示**繪師名**；不同時照顯示 `label`＋繪師小標。
 
 完工——キャラ合計榜會自動出現「はじめ 合計」分頁。`id` 限定
 `英數/_-` 的「キャラ/絵師」兩段式，API 端有 regex 擋 path traversal。

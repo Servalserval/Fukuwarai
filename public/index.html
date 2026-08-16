@@ -14,6 +14,11 @@
 
 <header class="top">
   <h1 class="title"><span class="kana">ふくわらい</span>笑福面</h1>
+  <div class="lang-row">
+    <button class="lang-btn" data-lang="ja" type="button">日本語</button>
+    <button class="lang-btn" data-lang="zh" type="button">中文</button>
+    <button class="lang-btn" data-lang="en" type="button">EN</button>
+  </div>
 </header>
 
 <main id="app">
@@ -24,7 +29,11 @@
       <button id="profile-chip" class="chip" type="button">なまえを登録する</button>
       <button id="btn-menu-board" class="ghost-btn" type="button">ランキング</button>
     </div>
-    <p class="lead">かおを えらんでください</p>
+    <div id="menu-sub" class="menu-sub hidden">
+      <button id="btn-group-back" class="ghost-btn" type="button">← カテゴリー</button>
+      <span id="group-crumb" class="crumb"></span>
+    </div>
+    <p id="lead" class="lead">かおを えらんでください</p>
     <div id="face-grid" aria-live="polite"></div>
   </section>
 
@@ -55,9 +64,9 @@
 
     <div id="panel-result" class="actions result hidden">
       <div class="score-line">
-        <span class="score-label">とくてん</span>
+        <span id="score-label-el" class="score-label">とくてん</span>
         <span id="score-value" class="score-value">0</span>
-        <span class="score-unit">点</span>
+        <span id="score-unit-el" class="score-unit">点</span>
       </div>
       <div class="player-line">
         <span id="player-as">なまえが未登録です</span>
@@ -78,14 +87,14 @@
 <div id="profile-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-label="なまえの登録">
   <div class="board-card">
     <div class="board-head">
-      <h2>なまえの登録</h2>
+      <h2 id="profile-title">なまえの登録</h2>
       <button id="btn-profile-close" class="ghost-btn" type="button">とじる</button>
     </div>
-    <p class="field-label">なまえ（12文字まで）</p>
+    <p id="name-label" class="field-label">なまえ（12文字まで）</p>
     <input id="profile-name" type="text" maxlength="12" autocomplete="nickname" placeholder="なまえ">
-    <p class="field-label">推しマーク</p>
+    <p id="mark-label" class="field-label">推しマーク</p>
     <div id="mark-grid" class="mark-grid"></div>
-    <p class="profile-note">この端末に保存されます。次からは自動でこのなまえで登録されます。</p>
+    <p id="profile-note" class="profile-note">この端末に保存されます。次からは自動でこのなまえで登録されます。</p>
     <button id="btn-profile-save" class="main-btn" type="button">保存する</button>
   </div>
 </div>

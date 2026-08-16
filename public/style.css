@@ -260,3 +260,19 @@ body{
 #board-list .mini .mini-base{position:relative;width:100%;height:auto}
 #board-list .mk{flex-shrink:0}
 #board-list .fc{font-size:11px;color:var(--ink-soft);flex-shrink:0}
+
+/* ── v2.1: language row / 2-emoji marks ── */
+.lang-row{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.lang-btn{
+  font-family:var(--body);font-size:11px;letter-spacing:.08em;cursor:pointer;
+  color:#cfd9e6;background:rgba(246,241,227,.1);
+  border:1px solid rgba(246,241,227,.3);border-radius:999px;padding:4px 10px;
+}
+.lang-btn.sel{background:var(--washi);color:var(--ink);border-color:var(--washi)}
+.mark-grid{grid-template-columns:repeat(4,1fr)}
+.mark-btn{font-size:19px;letter-spacing:1px}
+.curtain-text.latin{writing-mode:horizontal-tb;letter-spacing:.3em;font-size:clamp(20px,5.5vw,30px)}
+
+/* ── v2.2: two-level menu ── */
+.menu-sub{display:flex;align-items:center;gap:10px;margin:2px 0 4px}
+.crumb{font-family:var(--disp);font-size:18px;color:var(--washi);letter-spacing:.12em}
