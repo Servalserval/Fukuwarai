@@ -1,0 +1,14 @@
+# Cloudflare Pages 快取規則：
+# 程式與設定檔每次重新驗證（ETag 304，避免新舊版混搭），臉圖快取 5 分鐘
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/app.js
+  Cache-Control: no-cache
+/style.css
+  Cache-Control: no-cache
+/faces.json
+  Cache-Control: no-cache
+/face/*
+  Cache-Control: public, max-age=300
