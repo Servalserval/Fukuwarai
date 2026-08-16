@@ -186,6 +186,7 @@ const state = {
   board: { type: 'total', key: '', scope: 'all', context: 'menu' },
   markSel: '',
   menuGroup: null,   // null = カテゴリー層；有值 = 該群組的顔列表
+  defs: {},          // faceId -> face.json（選單預覽用快取）
 };
 
 /* ── 語言切換 ─────────────────────────────────────────── */
@@ -337,8 +338,29 @@ const esc = (s) => String(s).replace(/[&<>"']/g,
 async function loadMenu() {
   const res = await fetch('faces.json');
   state.registry = await res.json();
+  await Promise.all(state.registry.faces.map(async (f) => {
+    try { state.defs[f.id] = await (await fetch(`${f.dir}/face.json`)).json(); } catch {}
+  }));
   refreshMenu();
   renderProfileUI();
+}
+
+/* 選單卡片的完成臉預覽：底圖＋零件擺到正解位置（百分比定位，隨卡片縮放） */
+function previewHTML(f) {
+  const def = state.defs[f.id];
+  if (!def) {
+    return `<span class="pv-frame"><img class="pv-plain" src="${esc(f.dir)}/base.png" alt=""></span>`;
+  }
+  const fit = (def.width / def.height >= 0.75) ? 'width:100%' : 'height:100%';
+  let html = `<span class="pv-frame"><span class="preview" style="aspect-ratio:${def.width}/${def.height};${fit}">` +
+    `<img class="pv-base" src="${esc(f.dir)}/${esc(def.base)}" alt="">`;
+  for (const p of def.parts) {
+    const l = ((p.x - p.w / 2) / def.width * 100).toFixed(2);
+    const tp = ((p.y - p.h / 2) / def.height * 100).toFixed(2);
+    const w = (p.w / def.width * 100).toFixed(2);
+    html += `<img src="${esc(f.dir)}/${esc(p.img)}" style="left:${l}%;top:${tp}%;width:${w}%" alt="">`;
+  }
+  return html + '</span></span>';
 }
 
 function groupsOf() {
@@ -376,7 +398,7 @@ function refreshMenu() {
       card.type = 'button';
       card.className = 'face-card';
       card.innerHTML =
-        `<img src="${esc(coverFace.dir)}/base.png" alt="">` +
+        previewHTML(coverFace) +
         `<span class="fc-label">${esc(g.label)}</span>` +
         `<span class="fc-artist">${esc(t('facesUnit', g.faces.length))}</span>`;
       card.addEventListener('click', () => { state.menuGroup = key; refreshMenu(); });
@@ -396,7 +418,7 @@ function refreshMenu() {
       card.type = 'button';
       card.className = 'face-card';
       card.innerHTML =
-        `<img src="${esc(f.dir)}/base.png" alt="">` +
+        previewHTML(f) +
         `<span class="fc-label">${esc(primary)}</span>` +
         (showChip ? `<span class="fc-artist"></span>` : '');
       if (showChip) card.querySelector('.fc-artist').textContent = t('artist', f.artist);
@@ -415,8 +437,8 @@ function showScreen(name) {
 /* ── 進入遊戲 ─────────────────────────────────────────── */
 async function startFace(entry) {
   state.faceEntry = entry;
-  const res = await fetch(`${entry.dir}/face.json`);
-  state.def = await res.json();
+  state.def = state.defs[entry.id] ||
+    await (await fetch(`${entry.dir}/face.json`)).json();
   $('face-title').textContent = `${state.def.label}（${t('artist', state.def.artist)}）`;
   $('face-img').src = `${entry.dir}/${state.def.base}`;
   buildParts();
