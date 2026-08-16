@@ -344,24 +344,51 @@ $('btn-profile-save').addEventListener('click', () => {
 });
 
 /* ── 分數公式（要跟 functions/api/score.js 保持一致）────── */
+function partHitScore(dp, pl, diag, tol) {
+  const d = Math.hypot(pl.x - dp.x, pl.y - dp.y) / diag;
+  return Math.max(0, 1 - d / tol);
+}
+
+/* 可互換零件組：全排列取最佳配對（組很小，n<=6） */
+function bestAssignScore(dps, pls, diag, tol) {
+  const n = dps.length;
+  const idx = [...Array(n).keys()];
+  let best = 0;
+  const walk = (k) => {
+    if (k === n) {
+      let s = 0;
+      for (let i = 0; i < n; i++) s += partHitScore(dps[i], pls[idx[i]], diag, tol);
+      if (s > best) best = s;
+      return;
+    }
+    for (let i = k; i < n; i++) {
+      [idx[k], idx[i]] = [idx[i], idx[k]];
+      walk(k + 1);
+      [idx[k], idx[i]] = [idx[i], idx[k]];
+    }
+  };
+  walk(0);
+  return best;
+}
+
 function computeScore(def, placements) {
   const diag = Math.hypot(def.width, def.height);
   const tol = (typeof def.tolerance === 'number' && def.tolerance > 0) ? def.tolerance : 0.22;
   let sum = 0;
+  const groups = new Map();   // swap 群組：同群可互換，取最佳配對
   for (const dp of def.parts) {
     const pl = placements.get(dp.id);
     if (!pl) return null;
-    const d = Math.hypot(pl.x - dp.x, pl.y - dp.y) / diag;
-    sum += Math.max(0, 1 - d / tol);
+    if (dp.swap) {
+      const g = groups.get(dp.swap) || { dps: [], pls: [] };
+      g.dps.push(dp); g.pls.push(pl);
+      groups.set(dp.swap, g);
+    } else {
+      sum += partHitScore(dp, pl, diag, tol);
+    }
   }
+  for (const g of groups.values()) sum += bestAssignScore(g.dps, g.pls, diag, tol);
   return Math.round((sum / def.parts.length) * 10000);
-}
-
-/* 圖層優先度：z 大的在上（預設 0），同 z 照 face.json 陣列順序 */
-function zOrdered(defParts) {
-  return defParts.map((p, i) => ({ p, i }))
-    .sort((a, b) => ((a.p.z || 0) - (b.p.z || 0)) || (a.i - b.i))
-    .map((o) => o.p);
 }
 
 const esc = (s) => String(s).replace(/[&<>"']/g,

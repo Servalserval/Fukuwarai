@@ -46,7 +46,35 @@ function cleanMark(v) {
 }
 
 /* 分數公式（要跟 public/app.js 的 computeScore 保持一致）。
- * 回傳 {score, placements}；不合法回 null。每張臉滿分 10000。 */
+ * 回傳 {score, placements}；不合法回 null。每張臉滿分 10000。
+ * swap：同群組零件視為可互換（左右一樣的腮紅等），取最佳配對計分。 */
+function partHitScore(dp, pl, diag, tol) {
+  const d = Math.hypot(pl.x - dp.x, pl.y - dp.y) / diag;
+  return Math.max(0, 1 - d / tol);
+}
+
+/* 可互換零件組：全排列取最佳配對（組很小，n<=6） */
+function bestAssignScore(dps, pls, diag, tol) {
+  const n = dps.length;
+  const idx = [...Array(n).keys()];
+  let best = 0;
+  const walk = (k) => {
+    if (k === n) {
+      let s = 0;
+      for (let i = 0; i < n; i++) s += partHitScore(dps[i], pls[idx[i]], diag, tol);
+      if (s > best) best = s;
+      return;
+    }
+    for (let i = k; i < n; i++) {
+      [idx[k], idx[i]] = [idx[i], idx[k]];
+      walk(k + 1);
+      [idx[k], idx[i]] = [idx[i], idx[k]];
+    }
+  };
+  walk(0);
+  return best;
+}
+
 function computeScore(def, parts) {
   if (!Array.isArray(parts) || !def || !Array.isArray(def.parts) || def.parts.length === 0) return null;
   if (parts.length !== def.parts.length) return null;
@@ -66,13 +94,20 @@ function computeScore(def, parts) {
   const tol = (typeof def.tolerance === 'number' && def.tolerance > 0) ? def.tolerance : 0.22;
   let sum = 0;
   const placements = [];
+  const groups = new Map();
   for (const dp of def.parts) {
     const pl = map.get(dp.id);
     if (!pl) return null; // 缺零件或 id 不符
-    const d = Math.hypot(pl.x - dp.x, pl.y - dp.y) / diag;
-    sum += Math.max(0, 1 - d / tol);
     placements.push({ id: dp.id, x: pl.x, y: pl.y });
+    if (dp.swap) {
+      const g = groups.get(dp.swap) || { dps: [], pls: [] };
+      g.dps.push(dp); g.pls.push(pl);
+      groups.set(dp.swap, g);
+    } else {
+      sum += partHitScore(dp, pl, diag, tol);
+    }
   }
+  for (const g of groups.values()) sum += bestAssignScore(g.dps, g.pls, diag, tol);
   return { score: Math.round((sum / def.parts.length) * 10000), placements };
 }
 

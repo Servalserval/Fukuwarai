@@ -227,6 +227,11 @@ FACES = {
 }
 
 
+SWAPS = {
+    "example/okame": {"brow_l": "brow", "brow_r": "brow", "eye_l": "eye", "eye_r": "eye"},
+    "example/oni": {"eye_l": "eye", "eye_r": "eye"},
+}
+
 def main():
     registry = {"groups": {
         "example": {"label": "サンプル", "cover": "example/okame"},
@@ -240,10 +245,14 @@ def main():
         for pid, label, fn, (tx, ty) in spec["parts"]:
             img = fn()
             img.save(os.path.join(outdir, f"{pid}.png"))
-            parts_json.append({
+            entry = {
                 "id": pid, "label": label, "img": f"{pid}.png",
                 "w": img.width, "h": img.height, "x": tx, "y": ty,
-            })
+            }
+            sw = SWAPS.get(face_id, {}).get(pid)
+            if sw:
+                entry["swap"] = sw
+            parts_json.append(entry)
         face_json = {
             "label": spec["label"], "artist": spec["artist"],
             "base": "base.png", "width": W, "height": H,
