@@ -62,6 +62,7 @@ const LANGS = {
     facesUnit: (n) => `${n}面`,
     saveImg: '画像を保存',
     shareNative: '共有',
+    copied: 'コピー済✓',
     shareText: (face, score, u) => `リグロス福笑いで「${face}」${score}${u}だった！ #リグロス福笑い`,
   },
   zh: {
@@ -113,6 +114,7 @@ const LANGS = {
     facesUnit: (n) => `${n} 張`,
     saveImg: '儲存圖片',
     shareNative: '分享',
+    copied: '已複製文案✓',
     shareText: (face, score, u) => `我在 Regloss 笑福面「${face}」拿了 ${score}${u}！ #リグロス福笑い`,
   },
   en: {
@@ -164,6 +166,7 @@ const LANGS = {
     facesUnit: (n) => `${n} faces`,
     saveImg: 'Save image',
     shareNative: 'Share',
+    copied: 'Copied!',
     shareText: (face, score, u) => `I scored ${score}${u} on "${face}" in Regloss Fukuwarai! #リグロス福笑い`,
   },
 };
@@ -914,9 +917,17 @@ $('btn-share-x').addEventListener('click', async () => {
 
 $('btn-share-fb').addEventListener('click', async () => {
   if (state.lastScore == null) return;
+  // FB 不允許預填貼文文字（平台政策），改成自動複製文案讓使用者貼上
+  const btn = $('btn-share-fb');
+  try {
+    await navigator.clipboard.writeText(shareMessage());
+    const orig = btn.textContent;
+    btn.textContent = t('copied');
+    setTimeout(() => { btn.textContent = orig; }, 1800);
+  } catch {}
   const w = window.open('about:blank', '_blank');
   const url = await ensureShareUrl();
-  const u = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(shareMessage())}`;
+  const u = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
   if (w) w.location = u; else window.open(u, '_blank', 'noopener');
 });
 

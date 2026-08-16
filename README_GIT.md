@@ -22,7 +22,7 @@ git push
 # ── 回 dev 準備下一輪 ─────────────────
 git checkout dev
 
-cd ~/fukuwarai/fukuwarai && unzip -o ~/fukuwarai-menufix.zip -d /tmp/ && bash /tmp/fukuwarai-menufix/apply.sh .
+cd ~/fukuwarai/fukuwarai && unzip -o ~/fukuwarai-fbshare.zip -d /tmp/ && bash /tmp/fukuwarai-fbshare/apply.sh .
 
 git add *
 git commit -m "Fix the problem that all cards are gone"

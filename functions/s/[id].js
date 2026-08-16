@@ -14,14 +14,15 @@ export async function onRequestGet({ params, env, request }) {
   const origin = new URL(request.url).origin;
   const img = `${origin}/api/shot/${id}`;
   const who = row.name ? `${row.name}：` : '';
-  const desc = `${who}「${row.face}」${row.score}点！`;
+  const brag = `${who}「${row.face}」${row.score}点！`;
+  const desc = 'めかくしで かおをつくる ふくわらいゲーム ─ リグロス福笑い';
   const html = `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>リグロス福笑い</title>
+<title>${esc(brag)} ─ リグロス福笑い</title>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="リグロス福笑い">
-<meta property="og:title" content="リグロス福笑い">
+<meta property="og:title" content="${esc(brag)}">
 <meta property="og:description" content="${esc(desc)}">
 <meta property="og:image" content="${esc(img)}">
 <meta property="og:url" content="${esc(`${origin}/s/${id}`)}">
@@ -35,7 +36,7 @@ img{max-width:min(92vw,560px);border-radius:14px;box-shadow:0 14px 30px rgba(0,0
 a{background:#c73e3a;color:#f6f1e3;text-decoration:none;
   padding:13px 40px;border-radius:999px;font-weight:700;letter-spacing:.15em}
 </style></head><body>
-<img src="${esc(img)}" alt="${esc(desc)}">
+<img src="${esc(img)}" alt="${esc(brag)}">
 <a href="/">リグロス福笑いであそぶ →</a>
 </body></html>`;
   return new Response(html, {
