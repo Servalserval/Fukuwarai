@@ -60,6 +60,9 @@ const LANGS = {
     curtainLatin: false,
     artist: (a) => `絵：${a}`,
     facesUnit: (n) => `${n}面`,
+    saveImg: '画像を保存',
+    shareNative: '共有',
+    shareText: (face, score, u) => `リグロス福笑いで「${face}」${score}${u}だった！ #リグロス福笑い`,
   },
   zh: {
     htmlLang: 'zh-Hant',
@@ -108,6 +111,9 @@ const LANGS = {
     curtainLatin: false,
     artist: (a) => `繪師：${a}`,
     facesUnit: (n) => `${n} 張`,
+    saveImg: '儲存圖片',
+    shareNative: '分享',
+    shareText: (face, score, u) => `我在 Regloss 笑福面「${face}」拿了 ${score}${u}！ #リグロス福笑い`,
   },
   en: {
     htmlLang: 'en',
@@ -156,6 +162,9 @@ const LANGS = {
     curtainLatin: true,
     artist: (a) => `Art: ${a}`,
     facesUnit: (n) => `${n} faces`,
+    saveImg: 'Save image',
+    shareNative: 'Share',
+    shareText: (face, score, u) => `I scored ${score}${u} on "${face}" in Regloss Fukuwarai! #リグロス福笑い`,
   },
 };
 
@@ -232,6 +241,8 @@ function applyTexts() {
   $('score-label-el').textContent = t('scoreLabel');
   $('score-unit-el').textContent = t('scoreUnit');
   $('btn-edit-profile').textContent = t('edit');
+  $('btn-save-img').textContent = t('saveImg');
+  $('btn-share-native').textContent = t('shareNative');
 
   $('profile-title').textContent = t('profileTitle');
   $('name-label').textContent = t('nameLabel');
@@ -664,6 +675,7 @@ $('btn-submit').addEventListener('click', async () => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'error');
     state.phase = 'done';
+    state.lastScore = data.score;
     $('score-value').textContent = data.score;
     const msg = $('submit-msg');
     msg.textContent = t('submitted', data.rank, data.best, t('scoreUnit'));
@@ -678,6 +690,122 @@ $('btn-submit').addEventListener('click', async () => {
 $('btn-retry').addEventListener('click', resetRound);
 $('btn-menu').addEventListener('click', () => { state.phase = 'menu'; showScreen('menu'); });
 $('btn-back').addEventListener('click', () => { state.phase = 'menu'; showScreen('menu'); });
+
+/* ── 存圖與分享 ──────────────────────────────────────── */
+function roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/* 把「玩家擺出來的臉」＋分數＋名字畫成一張 PNG */
+async function buildResultBlob() {
+  const def = state.def;
+  try { await document.fonts.ready; } catch {}
+  const PAD = 48, FOOT = 240, CW = 1080;
+  const scale = Math.min((CW - PAD * 2) / def.width, 900 / def.height);
+  const fw = def.width * scale, fh = def.height * scale;
+  const CH = Math.round(PAD + fh + FOOT);
+  const cv = document.createElement('canvas');
+  cv.width = CW; cv.height = CH;
+  const ctx = cv.getContext('2d');
+
+  ctx.fillStyle = '#f6f1e3';
+  ctx.fillRect(0, 0, CW, CH);
+  const fx = (CW - fw) / 2;
+  roundRectPath(ctx, fx - 14, PAD - 14, fw + 28, fh + 28, 18);
+  ctx.fillStyle = '#fffdf7'; ctx.fill();
+  ctx.strokeStyle = '#e2d9c2'; ctx.lineWidth = 3; ctx.stroke();
+
+  ctx.drawImage($('face-img'), fx, PAD, fw, fh);
+  for (const dp of zOrdered(def.parts)) {
+    const rec = state.parts.get(dp.id);
+    if (!rec || !rec.placed) continue;
+    ctx.drawImage(rec.el,
+      fx + (rec.x - dp.w / 2) * scale, PAD + (rec.y - dp.h / 2) * scale,
+      dp.w * scale, dp.h * scale);
+  }
+
+  const cx = CW / 2;
+  let y = PAD + fh + 66;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#5c554d';
+  ctx.font = '500 34px "Zen Maru Gothic", sans-serif';
+  const profile = loadProfile();
+  const who = profile ? `${playerText(profile)}　` : '';
+  ctx.fillText(`${who}${L(state.faceEntry.label)}（${t('artist', state.def.artist)}）`, cx, y);
+
+  y += 100;
+  ctx.fillStyle = '#c73e3a';
+  ctx.font = '400 104px "Yuji Syuku", serif';
+  const sw = ctx.measureText(String(state.lastScore)).width;
+  ctx.font = '400 46px "Yuji Syuku", serif';
+  const uw = ctx.measureText(t('scoreUnit')).width;
+  ctx.font = '400 104px "Yuji Syuku", serif';
+  ctx.fillText(String(state.lastScore), cx - uw / 2, y);
+  ctx.fillStyle = '#2b2622';
+  ctx.font = '400 46px "Yuji Syuku", serif';
+  ctx.fillText(t('scoreUnit'), cx + sw / 2 + 8, y);
+
+  y += 58;
+  ctx.fillStyle = '#c9a227';
+  ctx.font = '400 34px "Yuji Syuku", serif';
+  ctx.fillText(t('title'), cx, y);
+
+  return new Promise((resolve) => cv.toBlob(resolve, 'image/png'));
+}
+
+function shareMessage() {
+  return t('shareText', L(state.faceEntry.label), state.lastScore, t('scoreUnit'));
+}
+
+$('btn-save-img').addEventListener('click', async () => {
+  if (!state.def || state.lastScore == null) return;
+  const blob = await buildResultBlob();
+  if (!blob) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `fukuwarai_${state.faceEntry.id.replace('/', '_')}_${state.lastScore}.png`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+});
+
+$('btn-share-native').addEventListener('click', async () => {
+  if (!state.def || state.lastScore == null) return;
+  const blob = await buildResultBlob();
+  if (!blob) return;
+  const file = new File([blob], 'fukuwarai.png', { type: 'image/png' });
+  try {
+    await navigator.share({ files: [file], text: `${shareMessage()} ${location.origin}` });
+  } catch {}
+});
+
+$('btn-share-x').addEventListener('click', () => {
+  if (state.lastScore == null) return;
+  const u = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMessage())}&url=${encodeURIComponent(location.origin)}`;
+  window.open(u, '_blank', 'noopener');
+});
+
+$('btn-share-fb').addEventListener('click', () => {
+  const u = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(location.origin)}&quote=${encodeURIComponent(shareMessage())}`;
+  window.open(u, '_blank', 'noopener');
+});
+
+/* 支援帶圖的原生分享才顯示「共有」鈕 */
+(function () {
+  try {
+    const f = new File([new Blob(['x'])], 't.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) {
+      $('btn-share-native').classList.remove('hidden');
+    }
+  } catch {}
+})();
 
 /* ── 排行榜 ───────────────────────────────────────────── */
 $('btn-board').addEventListener('click', () => openBoard('game'));

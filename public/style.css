@@ -285,3 +285,8 @@ body{
 
 /* ── v2.4: latin/mixed title sizing ── */
 .title.latin{font-size:clamp(24px,6.5vw,38px);letter-spacing:.08em}
+
+/* ── share row ── */
+.share-row{flex-wrap:wrap;justify-content:center}
+.sub-btn.brand-x{background:#141414;color:#fff;border-color:#141414}
+.sub-btn.brand-fb{background:#1877f2;color:#fff;border-color:#1877f2}
