@@ -138,10 +138,11 @@ body{
   position:absolute;left:0;top:0;z-index:10;
   pointer-events:auto;cursor:grab;
   -webkit-user-drag:none;user-select:none;touch-action:none;
-  filter:drop-shadow(0 3px 3px rgba(0,0,0,.25));
+  will-change:transform;
+  -webkit-backface-visibility:hidden;backface-visibility:hidden;
   transition:transform .18s ease;
 }
-.part.dragging{cursor:grabbing;transition:none;filter:drop-shadow(0 8px 8px rgba(0,0,0,.3))}
+.part.dragging{cursor:grabbing;transition:none}
 .part.locked{pointer-events:none}
 #stage.opened .part{transition:none}
 

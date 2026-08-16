@@ -543,7 +543,7 @@ function layout() {
 
 function moveTo(rec, sx, sy) {
   const w = rec.def.w * state.scale, h = rec.def.h * state.scale;
-  rec.el.style.transform = `translate(${sx - w / 2}px, ${sy - h / 2}px)`;
+  rec.el.style.transform = `translate3d(${sx - w / 2}px, ${sy - h / 2}px, 0)`;
   rec.sx = sx; rec.sy = sy;
 }
 
